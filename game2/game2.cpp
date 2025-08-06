@@ -424,7 +424,7 @@ int main() {
             renderTexture.draw(z.zombieSprite);
 
         }
-        //playerSwordAnimation(playerSwordAnimation,playerAnimate);
+        ////playerSwordAnimation(playerSwordAnimation,playerAnimate);
 
         for (int i = 0; i < zombie.size(); i++) {
             if (zombie[i].health <= 0) {
