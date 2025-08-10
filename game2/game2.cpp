@@ -91,7 +91,7 @@ public:
     
     bool isAttacking = false;
     int health = 100;
-    int damage = 200;;
+    int damage = 20;;
     //cooldown time if zombie took a damage
     float damageTakenCooldown = 0.0f;
     Vector2f knockback = Vector2f(0, 0);
@@ -109,9 +109,10 @@ public:
     Sprite zombieSprite;
     Vector2f XY;
     float speed = 20.0f;
-	int health = 100, damage = 5;
+	int health = 100;
     int direction = 0; // 0 = down, 1 = right, 2 = up, 3 = left
-	bool  zombieKnockback = false;
+    Vector2f knockback = Vector2f(0, 0);
+    
 
 	int frame = 0;
     int maxFrame = 3;
@@ -120,12 +121,37 @@ public:
 	int directionRow = 0; // 0 = down, 1 = right, 2 = up, 3 = left
 
 
+
+    void zombieKnockbackUpdate(float dt) {
+        if (knockback.x != 0 || knockback.y != 0) {
+            XY += knockback * dt;
+            knockback *= 0.9f;
+
+            if (abs(knockback.x) < 1 && abs(knockback.y) < 1)
+                knockback = Vector2f(0, 0);
+
+            zombieSprite.setPosition(XY);
+        }
+    }
+
+
+    void proccessZombieKnockback(Vector2f z,Vector2f playerPosition) {
+        Vector2f knockDir = z - playerPosition;
+        float knockLen = sqrt(knockDir.x * knockDir.x + knockDir.y * knockDir.y);
+        if (knockLen != 0)
+            knockDir /= knockLen;
+
+        knockback = knockDir * 200.0f;
+    }
+
+
+
     Zombie() {
         
         XY.x = rand()%600;
         XY.y= rand()%600;
         zombieSprite.setTexture(zombieTex);
-        
+       
         zombieSprite.setPosition(XY);
        zombieSprite.setTextureRect(IntRect(0,0,16,32));
 
@@ -174,12 +200,12 @@ public:
         }
     }
     
-    void zombieDamage(int width, int height,Vector2f playerLocation,Vector2f zombieLocation) {
+    void zombieDamage(int width, int height,Vector2f playerLocation,Vector2f zombieLocation,int damage) {
         
         Vector2f direction = Vector2f(width / 2 - 8, height / 2 - 16) - XY;
         float length = sqrt(direction.x * direction.x + direction.y * direction.y);
         if (length < 20 && MainPlayer.damageTakenCooldown <= 0) {
-            MainPlayer.health -= 5;
+            MainPlayer.health -= damage;
             MainPlayer.damageTakenCooldown = 0.5f;
 
             Vector2f knockDir = playerLocation - zombieLocation;
@@ -200,10 +226,52 @@ public:
 Texture Zombie::zombieTex;
 
 
-void playerSwordAnimation(Sprite& sprite,int direction) {
-  
-}
+void playerAttackAnimation(float dt,Sprite playerSwordAnimation,int direction,bool& playerAttackAnimationBOOL, RenderTexture& renderTexture){
+	static int frame = 0;
+    static float time = 0;
+        if (time > 0.10f) {
+            frame++;
+            time = 0;
+        }
+        if (frame >= 4) {
+            frame = 0;
+			playerAttackAnimationBOOL = false;
 
+		}
+ cout<<"frame + time "<< frame << " " << time << endl;
+    time += 0.016f;
+    playerSwordAnimation.setOrigin(18, 14);
+    playerSwordAnimation.setTextureRect(IntRect(0 * 16,frame  * 16, 32, 16));
+    switch(direction) {
+        case 0: // down 
+            playerSwordAnimation.setPosition(320 / 2 + 6, 240 / 2 + 8);
+           
+            if(frame == 0)playerSwordAnimation.setRotation(45);
+            else playerSwordAnimation.setRotation(200);
+            break;
+			
+        case 1: // right
+            playerSwordAnimation.setPosition(167,130);
+            if (frame == 0)playerSwordAnimation.setRotation(-45);
+            else playerSwordAnimation.setRotation(110);
+            break;
+        case 2: // up
+
+            playerSwordAnimation.setPosition(160, 118);
+            if (frame == 0)playerSwordAnimation.setRotation(-135);
+            else playerSwordAnimation.setRotation(20);
+
+            break;
+           
+        case 3: // left
+            playerSwordAnimation.setPosition(152, 130);
+            if (frame == 0)playerSwordAnimation.setRotation(135);
+            else playerSwordAnimation.setRotation(290);
+            break;
+	}
+	renderTexture.draw(playerSwordAnimation);
+
+}
 
 int main() {
     srand(time(0));
@@ -221,12 +289,12 @@ int main() {
 
     vector<vector<int>> tileMap = loadMap("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/map.txt");
     vector<Zombie> zombie;
-    Texture tileSet, playerTex,swordTex;
+    Texture tileSet, playerTex, swordTex;
     if (
         !tileSet.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/tiles.png") ||
         !playerTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerTex.png") ||
-        !swordTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/directionAttacks.png") ||
-        !Zombie::zombieTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerTex.png")) {
+        !swordTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/swordTex.png") ||
+        !Zombie::zombieTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieTex.png")) {
         cerr << "Error loading Textures\n";
     }
     Font font;
@@ -235,12 +303,18 @@ int main() {
         cerr << "Error loading font\n";
     }
 
-    Sprite tileSprite, player,playerSwordAnimation;
+    Sprite tileSprite, player, playerSwordAnimation;
     player.setTexture(playerTex);
     player.setTextureRect(IntRect(0, 0, 16, 32));
     player.setPosition(width / 2 - player.getGlobalBounds().width / 2, height / 2 - player.getGlobalBounds().height / 2);
     tileSprite.setTexture(tileSet);
     playerSwordAnimation.setTexture(swordTex);
+
+
+    playerSwordAnimation.setPosition(width / 2 + 6, height / 2 + 8);
+
+
+
     //creating a rectangle shape for health text background
     RectangleShape healthBG;
     healthBG.setSize(Vector2f(70, 15));
@@ -259,8 +333,8 @@ int main() {
 
 
 
-
-
+    int zombieDamage = 10;
+    int playerAnimate = 0;
     //for delta time
     Clock clock;
     bool zombieSpawn = true;
@@ -268,7 +342,8 @@ int main() {
     float speed = 80;
     float cameraX = 0, cameraY = 0;
     bool playerAttackKey = false;
-
+    bool playerAttackAnimationBOOL = false;
+    static int playerAttackDirection = 0;
     float playerAttackTime = 0;
     // Game loop
     while (window.isOpen()) {
@@ -294,44 +369,47 @@ int main() {
 
         //show animation if the player is moving also the player will animate in the direction they are moving
         bool isPlayerMoving = false;
-        int playerAnimate = 0;
+
 
         //store the zombie movement will be same with different framerate
         float zombieMovementX = 0, zombieMovementY = 0;
         //camera movement
-        if (Keyboard::isKeyPressed(Keyboard::W)) { cameraY -= speed * dt; isPlayerMoving = true; playerAnimate = 2; zombieMovementY += speed * dt; }
-        if (Keyboard::isKeyPressed(Keyboard::S)) { cameraY += speed * dt; isPlayerMoving = true; playerAnimate = 0; zombieMovementY -= speed * dt; }
-        if (Keyboard::isKeyPressed(Keyboard::A)) { cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; zombieMovementX += speed * dt; }
-        if (Keyboard::isKeyPressed(Keyboard::D)) { cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; zombieMovementX -= speed * dt; }
+        if (!playerAttackAnimationBOOL) {
+            if (Keyboard::isKeyPressed(Keyboard::W)) { cameraY -= speed * dt; isPlayerMoving = true; playerAnimate = 2; playerAttackDirection = 2; zombieMovementY += speed * dt; }
+            if (Keyboard::isKeyPressed(Keyboard::S)) { cameraY += speed * dt; isPlayerMoving = true; playerAnimate = 0; playerAttackDirection = 0;  zombieMovementY -= speed * dt; }
+            if (Keyboard::isKeyPressed(Keyboard::A)) { cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; playerAttackDirection = 3;  zombieMovementX += speed * dt; }
+            if (Keyboard::isKeyPressed(Keyboard::D)) { cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; playerAttackDirection = 1;  zombieMovementX -= speed * dt; }
 
-        if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::D)) {
-            cameraY += speed * dt * 0.293;
-            cameraX -= speed * dt * 0.293;
-            zombieMovementY -= speed * dt * 0.293;
-            zombieMovementX += speed * dt * 0.293;
-        }
-        if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::A)) {
-            cameraY += speed * dt * 0.293;
-            cameraX += speed * dt * 0.293;
-            zombieMovementY -= speed * dt * 0.293;
-            zombieMovementX -= speed * dt * 0.293;
-        }
-        if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::D)) {
-            cameraY -= speed * dt * 0.293;
-            cameraX -= speed * dt * 0.293;
-            zombieMovementY += speed * dt * 0.293;
-            zombieMovementX += speed * dt * 0.293;
-        }
-        if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::A)) {
-            cameraY -= speed * dt * 0.293;
-            cameraX += speed * dt * 0.293;
-            zombieMovementY += speed * dt * 0.293;
-            zombieMovementX -= speed * dt * 0.293;
-        }
+            if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::D)) {
+                cameraY += speed * dt * 0.293;
+                cameraX -= speed * dt * 0.293;
+                zombieMovementY -= speed * dt * 0.293;
+                zombieMovementX += speed * dt * 0.293;
+            }
+            if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::A)) {
+                cameraY += speed * dt * 0.293;
+                cameraX += speed * dt * 0.293;
+                zombieMovementY -= speed * dt * 0.293;
+                zombieMovementX -= speed * dt * 0.293;
+            }
+            if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::D)) {
+                cameraY -= speed * dt * 0.293;
+                cameraX -= speed * dt * 0.293;
+                zombieMovementY += speed * dt * 0.293;
+                zombieMovementX += speed * dt * 0.293;
+            }
+            if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::A)) {
+                cameraY -= speed * dt * 0.293;
+                cameraX += speed * dt * 0.293;
+                zombieMovementY += speed * dt * 0.293;
+                zombieMovementX -= speed * dt * 0.293;
+            }
 
-        if (Keyboard::isKeyPressed(Keyboard::Space) && playerAttackTime >= 2) {
-            playerAttackKey = true;
-            playerAttackTime = 0;
+            if (Keyboard::isKeyPressed(Keyboard::Space) && playerAttackTime >= 2) {
+                playerAttackKey = true;
+                playerAttackAnimationBOOL = true;
+                playerAttackTime = 0;
+            }
         }
         cout << playerAttackTime << endl;
 
@@ -356,13 +434,6 @@ int main() {
         renderTexture.draw(player);
 
 
-        //update health number every frame
-        //to_string convert number to string
-        healthText.setString("Health: " + to_string(MainPlayer.health));
-
-        //draw health text with background
-        renderTexture.draw(healthBG);
-        renderTexture.draw(healthText);
 
 
         Vector2f getPlayerPosition = player.getPosition();
@@ -371,32 +442,40 @@ int main() {
             for (auto& z : zombie) {
                 switch (playerAnimate) {
                 case 0:
+
+
+
                     if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y && z.XY.y < getPlayerPosition.y + 40) {
                         z.health -= MainPlayer.damage;
-                        z.XY.x = 0; z.XY.y = 0;
+
                         cout << z.health << endl;
-						//z.zombieKnockback = true;
+
+                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
                     }
                     break;
                 case 1:
                     if (z.XY.x > getPlayerPosition.x && z.XY.x < getPlayerPosition.x + 40 && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
                         z.health -= MainPlayer.damage;
-                        z.XY.x = 0; z.XY.y = 0;
+
                         cout << z.health << endl;
+                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
+
                     }
                     break;
                 case 2:
                     if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y - 40 && z.XY.y < getPlayerPosition.y) {
                         z.health -= MainPlayer.damage;
-                        z.XY.x = 0; z.XY.y = 0;
+                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
                         cout << z.health << endl;
+
                     }
                     break;
                 case 3:
                     if (z.XY.x > getPlayerPosition.x - 40 && z.XY.x < getPlayerPosition.x && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
                         z.health -= MainPlayer.damage;
-                        z.XY.x = 0; z.XY.y = 0;
+                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
                         cout << z.health << endl;
+
                     }
                     break;
                 }
@@ -416,8 +495,8 @@ int main() {
             z.updateLocationByPlayer(zombieMovementX, zombieMovementY, dt, playerAnimate);
             z.updateZombieMove(width, height, dt);
             //if (z.zombieDamage(width, height))MainPlayer.health -= 5;
-            z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition());
-
+            z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage);
+            z.zombieKnockbackUpdate(dt);
 
 
 
@@ -433,6 +512,22 @@ int main() {
             }
         }
 
+
+        //update health number every frame
+        //to_string convert number to string
+        healthText.setString("Health: " + to_string(MainPlayer.health));
+
+        //draw health text with background
+        renderTexture.draw(healthBG);
+        renderTexture.draw(healthText);
+
+
+
+        if (playerAttackAnimationBOOL) {
+
+            playerAttackAnimation(dt, playerSwordAnimation, playerAttackDirection, playerAttackAnimationBOOL, renderTexture);
+
+        }
 
 
 
@@ -451,6 +546,10 @@ int main() {
             if (abs(MainPlayer.knockback.x) < 1 && abs(MainPlayer.knockback.y) < 1)
                 MainPlayer.knockback = Vector2f(0, 0);
         }
+
+
+
+
 
         //display the scaled window
         renderTexture.display();
