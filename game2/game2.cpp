@@ -93,7 +93,7 @@ public:
     
     bool isAttacking = false;
     int health = 100;
-    int damage = 200;;
+    int damage = 20;;
     //cooldown time if zombie took a damage
     float damageTakenCooldown = 0.0f;
     Vector2f knockback = Vector2f(0, 0);
@@ -129,17 +129,62 @@ Vector2f getZombieSpawnPosition(Vector2f playerPos) {
 
 
 
+
+
+
+
+class ZombieDeath {
+
+public:
+    static Texture zombieDeathTex;
+    Sprite zombieDeathSprite;
+    Vector2f XY;
+    int frame = 0;
+    float timePassed = 0.0f;
+    ZombieDeath(Vector2f z,Vector2f worldPos) {
+        XY = z + worldPos;
+        zombieDeathSprite.setTexture(zombieDeathTex);
+        zombieDeathSprite.setPosition(XY);
+        zombieDeathSprite.setTextureRect(IntRect(0, 0, 32, 32));
+    }
+    void updateZombieDeath(float dt, RenderTexture& renderTexture,float CameraX,float CameraY) {
+        timePassed += dt;
+        if(frame <=2){
+        if (timePassed >= 0.2f) {
+            frame++;
+            timePassed = 0.0f;
+        }
+            }
+
+            zombieDeathSprite.setPosition(XY - Vector2f(CameraX , CameraY));
+            zombieDeathSprite.setTextureRect(IntRect(frame * 24 , 0, 24, 32));
+            renderTexture.draw(zombieDeathSprite);
+        
+    }
+};
+
+Texture ZombieDeath::zombieDeathTex;
+
+
+
+
+
+
+
+
 //zombie class
 class Zombie {
 public:
     static Texture zombieTex;
     Sprite zombieSprite;
     Vector2f XY;
+	bool isDead = false;
     float speed = 40.0f;
 	int health = 100;
     int direction = 0; // 0 = down, 1 = right, 2 = up, 3 = left
     Vector2f knockback = Vector2f(0, 0);
     
+	bool bleeding = false; 
 
 	int frame = 0;
 	float timePassed = 0.0f;
@@ -176,10 +221,7 @@ public:
 
 
     Zombie(Vector2f playerPos) {
-        /*
-        XY.x = 280 + rand() % (1000 - 280 + 1);
-        XY.y = 280 + rand() % (1000 - 280 + 1);
-        */
+       
         XY = getZombieSpawnPosition(playerPos);
         zombieSprite.setTexture(zombieTex);
        
@@ -187,6 +229,26 @@ public:
        zombieSprite.setTextureRect(IntRect(0,0,16,32));
 
     }
+
+    void zombieBleedAnimation(RenderTexture& renderTexture, float dt, Sprite& blood) {
+        static int frame = 0;
+        static float time = 0;
+        if (time > 0.10f) {
+            frame++;
+            time = 0;
+        }
+        
+        time += dt;
+		
+        blood.setTextureRect(IntRect(frame * 32, 0 , 32, 16));
+        blood.setPosition(XY.x - 8, XY.y + 16);
+		renderTexture.draw(blood);
+        if (frame >= 4) {
+            frame = 0;
+			bleeding = false; // stop bleeding animation
+        }
+	}
+
     void updateLocationByPlayer(float x, float y,float deltaTime,int row) {
         
         XY.x += x;
@@ -315,7 +377,18 @@ void checkForNewLevel(vector<Zombie> zom,int &Level,bool &spawn){
 }
 
 
-
+void buttonAnimation(RenderTexture& renderTexture, Sprite& button) {
+    static int frame = 0;
+    static float time = 0.0f;
+    if (time > 0.15f) {
+        frame++;
+        time = 0.0f;
+    }
+    if (frame >= 4) frame = 0;
+    time += 0.016f;
+    button.setTextureRect(IntRect( 0 ,frame * 32, 48, 32));
+    renderTexture.draw(button);
+}
 
 
 
@@ -336,12 +409,16 @@ int main() {
     vector<vector<int>> tileMap = loadMap("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/map.txt");
 	
     vector<Zombie> zombie;
-    Texture tileSet, playerTex, swordTex,start;
+    vector<ZombieDeath> deadZombie;
+    Texture tileSet, playerTex, swordTex,start,bloodTex,buttonTex;
     if (
         !tileSet.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/tilesTex.png") ||
         !playerTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerTex.png") ||
         !swordTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/swordTex.png") ||
         !start.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/theme0.png") ||
+        !buttonTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/buttonTex.png") ||
+        !bloodTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/bloodTex.png") ||
+        !ZombieDeath::zombieDeathTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieDeathTex.png") ||
         !Zombie::zombieTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieTex.png")) {
         cerr << "Error loading Textures\n";
     }
@@ -351,7 +428,9 @@ int main() {
         cerr << "Error loading font\n";
     }
 
-    Sprite tileSprite, player, playerSwordAnimation,start1;
+    Sprite tileSprite, player, playerSwordAnimation,start1,bleeding,button;
+	button.setTexture(buttonTex);
+	bleeding.setTexture(bloodTex);
     start1.setTexture(start);
     player.setTexture(playerTex);
     player.setTextureRect(IntRect(0, 0, 16, 32));
@@ -359,7 +438,7 @@ int main() {
     tileSprite.setTexture(tileSet);
     playerSwordAnimation.setTexture(swordTex);
 
-
+	button.setPosition(198, 112);
     playerSwordAnimation.setPosition(width / 2 + 6, height / 2 + 8);
 
 
@@ -374,7 +453,8 @@ int main() {
 
 
     //creating health text on screen
-    Text healthText,zombieNumber,levelNumber;
+    Text healthText,zombieNumber,levelNumber,Enter,GameName;
+
     healthText.setFont(font);
     healthText.setCharacterSize(24);
     healthText.setFillColor(Color::Red);
@@ -390,6 +470,19 @@ int main() {
     zombieNumber.setCharacterSize(24);
     zombieNumber.setFillColor(Color::Black);
     zombieNumber.setPosition(Vector2f(209, 9));
+
+    Enter.setFont(font);
+    Enter.setCharacterSize(30);
+    Enter.setFillColor(Color::Black);
+    Enter.setPosition(Vector2f(410, 235));
+    Enter.setString("Enter");
+
+	GameName.setFont(font);
+    GameName.setCharacterSize(30);
+    GameName.setFillColor(Color::Black);
+    GameName.setPosition(Vector2f(350, 150));
+	GameName.setString("No Name Yet!");
+	GameName.setStyle(Text::Bold);
 
 
 
@@ -420,21 +513,30 @@ int main() {
         }
 
 
+
+
         while (!gameStarted) {
             while (window.pollEvent(event)) {
 
-                if (event.type == Event::Closed)
-                    window.close();
+                if (event.type == Event::Closed)  window.close();
+                  
             }
 			renderTexture.draw(start1);
+			buttonAnimation(renderTexture,button);
             renderTexture.display();
             Sprite screen(renderTexture.getTexture());
             screen.setScale(2.0f, 2.0f);
-            window.clear();
+            window.clear(Color::White);
             window.draw(screen);
+            window.draw(Enter);
+			window.draw(GameName);
             window.display();
             if (Keyboard::isKeyPressed(Keyboard::Enter)) gameStarted = true;
         }
+
+
+
+
         //show white background
         renderTexture.clear(Color::White);
         bool playerAllowToKnockback = true;
@@ -443,7 +545,7 @@ int main() {
         //if (dt > 0.018f) dt = 0.017f;
         playerAttackTime += dt;
 
-
+		
 
 
 
@@ -466,7 +568,7 @@ int main() {
             }
             if (Keyboard::isKeyPressed(Keyboard::A)) {
                 cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; playerAttackDirection = 3;  zombieMovementX += speed * dt;
-                if (cameraX < 45) { cameraX += speed * dt; zombieMovementX -= speed * dt; }
+               // if (cameraX < 45) { cameraX += speed * dt; zombieMovementX -= speed * dt; }
             }
             if (Keyboard::isKeyPressed(Keyboard::D)) {
                 cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; playerAttackDirection = 1;  zombieMovementX -= speed * dt;
@@ -564,6 +666,15 @@ int main() {
         //draw background 
         drawVisibleTiles(renderTexture, tileMap, tileSprite, tileSet, tileSize, cameraX, cameraY);
 
+		//draw dead zombies
+        for (auto& zDead : deadZombie) {
+            zDead.updateZombieDeath(dt, renderTexture,cameraX,cameraY);
+            renderTexture.draw(zDead.zombieDeathSprite);
+        }
+       
+
+
+         
         //draw player
         if (playerAttackDirection == 2) {
             if (playerAttackAnimationBOOL) playerAttackAnimation(dt, playerSwordAnimation, playerAttackDirection, playerAttackAnimationBOOL, renderTexture);
@@ -586,7 +697,7 @@ int main() {
                     if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y && z.XY.y < getPlayerPosition.y + 40) {
                         z.health -= MainPlayer.damage;
 
-                        
+                        z.bleeding = true;
 
                         z.proccessZombieKnockback(z.XY, getPlayerPosition);
                     }
@@ -594,7 +705,7 @@ int main() {
                 case 1:
                     if (z.XY.x > getPlayerPosition.x && z.XY.x < getPlayerPosition.x + 40 && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
                         z.health -= MainPlayer.damage;
-
+                        z.bleeding = true;
                         
                         z.proccessZombieKnockback(z.XY, getPlayerPosition);
 
@@ -603,6 +714,7 @@ int main() {
                 case 2:
                     if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y - 40 && z.XY.y < getPlayerPosition.y) {
                         z.health -= MainPlayer.damage;
+                        z.bleeding = true;
                         z.proccessZombieKnockback(z.XY, getPlayerPosition);
                       
 
@@ -611,6 +723,7 @@ int main() {
                 case 3:
                     if (z.XY.x > getPlayerPosition.x - 40 && z.XY.x < getPlayerPosition.x && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
                         z.health -= MainPlayer.damage;
+                        z.bleeding = true;
                         z.proccessZombieKnockback(z.XY, getPlayerPosition);
                       
 
@@ -626,15 +739,25 @@ int main() {
 
         }
 
+
+
+
+
+
+
         //draw zombies
         //loop through the zombies and update their positions. continues as many as there are zombies in the vector
         for (auto& z : zombie) {
 
             z.updateLocationByPlayer(zombieMovementX, zombieMovementY, dt, playerAnimate);
             z.updateZombieMove(width, height, dt);
-            //if (z.zombieDamage(width, height))MainPlayer.health -= 5;
+
             z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage);
             z.zombieKnockbackUpdate(dt);
+
+            if (z.health <= 0) deadZombie.push_back(ZombieDeath( z.XY , Vector2f(cameraX,cameraY)));
+
+            
             //z.location();
 
 	     // Check distance between all zombies and push them apart if too close
@@ -653,10 +776,10 @@ int main() {
                     }
                 }
             }
-
-
+         //RenderTexture& renderTexture, float dt, Sprite blood)
             renderTexture.draw(z.zombieSprite);
 
+         
         }
         ////playerSwordAnimation(playerSwordAnimation,playerAnimate);
         if (playerAttackDirection != 2) {
@@ -682,7 +805,13 @@ int main() {
 
         
         
-        
+
+        for (auto& z : zombie) {
+            if (z.bleeding) {
+                z.zombieBleedAnimation(renderTexture, dt, bleeding);
+				renderTexture.draw(bleeding);
+            }
+        }
 
 
         if (playerAllowToKnockback) {
