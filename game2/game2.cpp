@@ -392,6 +392,64 @@ void buttonAnimation(RenderTexture& renderTexture, Sprite& button) {
 
 
 
+
+
+
+
+void renderScreen(RenderTexture& renderTexture, RenderWindow& window,bool display) {
+    renderTexture.display();
+    Sprite screen(renderTexture.getTexture());
+    screen.setScale(2.0f, 2.0f);
+    window.clear(Color::White);
+    window.draw(screen);
+    if(display)window.display();
+    
+}
+
+
+void handleEvents(RenderWindow& window)
+{
+    Event event;
+    while (window.pollEvent(event))
+    {
+        if (event.type == Event::Closed)
+        {
+            window.close();
+        }
+    }
+}
+
+
+
+
+
+void typeText(RenderTexture& renderTexture,RenderWindow& window, Text& text, const string& message, int speedMs = 500)
+{
+    string shown = "";
+    for (size_t i = 0; i <= message.size(); i++)
+    {
+        handleEvents(window);
+        shown = message.substr(0, i);
+        text.setString(shown);
+        renderScreen(renderTexture, window, false);
+        window.draw(text);
+        window.display();
+       // renderScreen(renderTexture, window,true);
+
+        
+        
+        sleep(milliseconds(speedMs)); // wait a little
+    }
+}
+
+
+
+
+
+
+
+
+
 int main() {
     srand(time(0));
 
@@ -410,13 +468,15 @@ int main() {
 	
     vector<Zombie> zombie;
     vector<ZombieDeath> deadZombie;
-    Texture tileSet, playerTex, swordTex,start,bloodTex,buttonTex;
+    Texture tileSet, playerTex, swordTex,start,bloodTex,buttonTex,talkBarTex,houseTex;
     if (
         !tileSet.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/tilesTex.png") ||
         !playerTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerTex.png") ||
         !swordTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/swordTex.png") ||
         !start.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/theme0.png") ||
         !buttonTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/buttonTex.png") ||
+		!houseTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/houseTex.png") ||
+        !talkBarTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/talkingBar.png") ||
         !bloodTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/bloodTex.png") ||
         !ZombieDeath::zombieDeathTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieDeathTex.png") ||
         !Zombie::zombieTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieTex.png")) {
@@ -428,7 +488,11 @@ int main() {
         cerr << "Error loading font\n";
     }
 
-    Sprite tileSprite, player, playerSwordAnimation,start1,bleeding,button;
+    Sprite tileSprite, player, playerSwordAnimation,start1,bleeding,button,talkBar,house;
+	talkBar.setTexture(talkBarTex);
+	house.setTexture(houseTex);
+    Color color = house.getColor();
+
 	button.setTexture(buttonTex);
 	bleeding.setTexture(bloodTex);
     start1.setTexture(start);
@@ -453,7 +517,12 @@ int main() {
 
 
     //creating health text on screen
-    Text healthText,zombieNumber,levelNumber,Enter,GameName;
+    Text healthText,zombieNumber,levelNumber,Enter,GameName,dialog;
+
+    dialog.setFont(font);
+    dialog.setCharacterSize(18);
+    dialog.setFillColor(Color::Black);
+	dialog.setPosition(Vector2f(180, 385));
 
     healthText.setFont(font);
     healthText.setCharacterSize(24);
@@ -486,9 +555,9 @@ int main() {
 
 
 
-
+    //float alpha = 0;
 	Vector2f worldPos = Vector2f(0.0f,0.0f);
-	bool gameStarted = false;
+	//bool gameStarted = false;
 	int Level = 1;
     int zombieDamage = 10;
     int playerAnimate = 0;
@@ -502,121 +571,431 @@ int main() {
     bool playerAttackAnimationBOOL = false;
     static int playerAttackDirection = 0;
     float playerAttackTime = 0;
+
+
+
+
+
+
+
+
+
+
+/*
+    while (true) {
+        handleEvents(window);  // check for close event
+
+        renderTexture.draw(start1);
+        buttonAnimation(renderTexture, button);
+
+        renderScreen(renderTexture, window, false);
+        window.draw(Enter);
+        window.draw(GameName);
+        window.display();
+        if (Keyboard::isKeyPressed(Keyboard::Enter)) gameStarted = true;
+
+        while (gameStarted) {
+
+            while (alpha < 255) {
+                handleEvents(window);
+                alpha += 1; // increase alpha slowly
+                color.a = alpha; // set new alpha
+                house.setColor(color);
+
+                renderTexture.draw(house);
+
+                renderScreen(renderTexture, window, false);
+                window.display();
+
+            }
+
+
+
+            alpha = 0; // reset alpha for next fade in
+            while (alpha < 255) {
+                handleEvents(window);
+                alpha += 1.5; // increase alpha slowly
+                color.a = alpha; // set new alpha
+                talkBar.setColor(color);
+                talkBar.setPosition(0, 166);
+                talkBar.setTextureRect(IntRect(0, 0, 320, 74));
+                renderTexture.draw(talkBar);
+
+                renderScreen(renderTexture, window, false);
+                window.display();
+
+            }
+            typeText(renderTexture, window, dialog, "Are You Really .... Have to? . . . \nI Want You Here.", 100);
+
+            while (window.isOpen()) {
+                cerr << "Game Started\n";
+                handleEvents(window);
+                window.display();
+            }
+
+
+        }
+
+    }
+
+*/
+
+    bool gameTheme = true;
+	bool gameStartedT = false;
+
+
+    bool gameStarted = false;
+    bool fadingHouse = false;
+    bool fadingTalkBar = false;
+    bool typingDialog = false;
+
+    int alpha = 0,alpha2=0;
+  //  sf::Color color = sf::Color::White;
+    sf::Color houseColor = sf::Color::White;
+    sf::Color talkBarColor = sf::Color::White;
+
+    
+
+
     // Game loop
     while (window.isOpen()) {
+        //renderTexture.clear();
+        /* Event event;
+         while (window.pollEvent(event)) {
+
+             if (event.type == Event::Closed)
+                 window.close();
+         }*/
+
 
         Event event;
-        while (window.pollEvent(event)) {
-
+        while (window.pollEvent(event))
+        {
             if (event.type == Event::Closed)
+            {
                 window.close();
+            }
+        }
+		renderTexture.clear(Color::White);
+        // ---- MENU STATE ----
+        if (gameTheme)
+        {
+            renderTexture.clear();
+            renderTexture.draw(start1);
+            buttonAnimation(renderTexture, button);
+
+            window.draw(Enter);
+            window.draw(GameName);
+            
+
+            if (Keyboard::isKeyPressed(Keyboard::Enter))
+            {
+               
+                fadingHouse = true;
+				gameTheme = false; 
+               // alpha = 0;
+            }
+        } 
+        
+        
+        if (fadingHouse)
+        {
+            if (alpha < 255)
+            {
+                alpha += 2; // fade speed
+                houseColor.a = alpha;
+                house.setColor(houseColor);
+
+                //renderTexture.clear();
+                renderTexture.draw(house);
+            }
+            else {
+                fadingHouse = false;
+                fadingTalkBar = true;
+				//alpha = 0;
+            }
+        }
+        
+        
+
+        if (fadingTalkBar)
+        { 
+            
+            if (alpha2 < 255)
+            {
+                alpha2 += 2;
+                talkBarColor.a = alpha2;
+                talkBar.setColor(talkBarColor);
+               // renderTexture.clear();
+               // renderTexture.draw(house);
+                talkBar.setPosition(0, 166);
+                talkBar.setTextureRect(IntRect(0, 0, 320, 74));
+                //renderTexture.clear();
+
+                renderTexture.draw(talkBar);
+            }
+            else 
+            {
+                fadingTalkBar = false;
+                typingDialog = true;
+                clock.restart();
+                dialog.setString(""); // clear text first
+			}
+        }
+
+        if (typingDialog)
+        {
+			static int typingI = 0;
+			string  message = "Are You Really .... Have to? . . . \nI Want You Here.";
+            string shown = "";
+            if(typingI >= message.size())typingDialog = false; // finished typing
+            shown = message.substr(0, typingI);
+			typingI++;
+            dialog.setString(shown);
+			cerr << "Typing: " << shown << endl;
+          //  renderTexture.draw(talkBar);
+			//renderTexture.clear(Color::White);
+            renderTexture.draw(dialog);
+            sleep(milliseconds(100));
+        }
+        
+        
+        /*
+        void typeText(RenderTexture & renderTexture, RenderWindow & window, Text & text, const , int speedMs = 500)
+        {
+            
+            for (size_t i = 0; i <= message.size(); i++)
+            {
+                handleEvents(window);
+                
+                text.setString(shown);
+                renderScreen(renderTexture, window, false);
+                window.draw(text);
+                window.display();
+                // renderScreen(renderTexture, window,true);
+
+
+
+                sleep(milliseconds(speedMs)); // wait a little
+            }
+        }
+        
+        
+        /*
+        // ---- GAME STATE ----
+        else
+        {
+           
+         
+         string shown = "";
+    for (size_t i = 0; i <= message.size(); i++)
+    {
+        handleEvents(window);
+        shown = message.substr(0, i);
+        text.setString(shown);
+        renderScreen(renderTexture, window, false);
+        window.draw(text);
+        window.display();
+       // renderScreen(renderTexture, window,true);
+
+
+
+        sleep(milliseconds(speedMs)); // wait a little
+    }
+            
+                else
+                {
+                    fadingTalkBar = false;
+                    typingDialog = true;
+                    clock.restart();
+                    dialog.setString(""); // clear text first
+                }
+            }
+            else if (typingDialog)
+            {
+                std::string full = "Are You Really .... Have to? . . . \nI Want You Here.";
+                int charsToShow = clock.getElapsedTime().asMilliseconds() / 100; // 100ms per char
+
+                if (charsToShow <= full.size())
+                    dialog.setString(full.substr(0, charsToShow));
+                else
+                    typingDialog = false; // finished typing
+
+                renderTexture.clear();
+                renderTexture.draw(talkBar);
+                renderTexture.draw(dialog);
+                renderScreen(renderTexture, window, false);
+                window.display();
+            }
+            else
+            {
+                // here game continues normally
+                renderTexture.clear();
+                renderTexture.draw(dialog);
+                renderScreen(renderTexture, window, false);
+                window.display();
+            }
         }
 
 
 
 
-        while (!gameStarted) {
-            while (window.pollEvent(event)) {
 
-                if (event.type == Event::Closed)  window.close();
-                  
-            }
-			renderTexture.draw(start1);
-			buttonAnimation(renderTexture,button);
+        /*
+        void renderScreen(RenderTexture & renderTexture, RenderWindow & window) {
             renderTexture.display();
             Sprite screen(renderTexture.getTexture());
             screen.setScale(2.0f, 2.0f);
             window.clear(Color::White);
             window.draw(screen);
+            //window.display();
+        }
+*/
+/*
+        //while (!gameStarted) {
+        while (true) {
+            handleEvents(window);  // check for close event
+
+            renderTexture.draw(start1);
+            buttonAnimation(renderTexture,button);
+
+            renderScreen(renderTexture, window,false);
             window.draw(Enter);
-			window.draw(GameName);
+            window.draw(GameName);
             window.display();
             if (Keyboard::isKeyPressed(Keyboard::Enter)) gameStarted = true;
-        }
+
+            while (gameStarted) {
+
+                while (alpha < 255) {
+                    handleEvents(window);
+                    alpha += 1; // increase alpha slowly
+                    color.a = alpha; // set new alpha
+                    house.setColor(color);
+
+                    renderTexture.draw(house);
+
+                    renderScreen(renderTexture, window,false);
+                    window.display();
+
+                }
 
 
 
+                alpha = 0; // reset alpha for next fade in
+                while (alpha < 255) {
+                    handleEvents(window);
+                    alpha += 1.5; // increase alpha slowly
+                    color.a = alpha; // set new alpha
+                    talkBar.setColor(color);
+                    talkBar.setPosition(0, 166);
+                    talkBar.setTextureRect(IntRect(0, 0, 320, 74));
+                    renderTexture.draw(talkBar);
 
-        //show white background
-        renderTexture.clear(Color::White);
-        bool playerAllowToKnockback = true;
-        //calculate delta time
-        float dt = clock.restart().asSeconds();
-        //if (dt > 0.018f) dt = 0.017f;
-        playerAttackTime += dt;
+                    renderScreen(renderTexture, window, false);
+                    window.display();
 
-		
+                }
+                typeText(renderTexture , window, dialog, "Are You Really .... Have to? . . . \nI Want You Here.", 100);
 
-
-
-
-        //show animation if the player is moving also the player will animate in the direction they are moving
-        bool isPlayerMoving = false;
+                while (true) {
+                    cerr << "Game Started\n";
+                    handleEvents(window);
+                    window.display();
+                }
 
 
-        //store the zombie movement will be same with different framerate
-        float zombieMovementX = 0, zombieMovementY = 0;
-        //camera movement
-        if (!playerAttackAnimationBOOL) {
-            if (Keyboard::isKeyPressed(Keyboard::W)) {
-                cameraY -= speed * dt; isPlayerMoving = true; playerAnimate = 2; playerAttackDirection = 2; zombieMovementY += speed * dt;
-                if (cameraY < 70) { cameraY += speed * dt; zombieMovementY -= speed * dt; }
             }
-            if (Keyboard::isKeyPressed(Keyboard::S)) {
-                cameraY += speed * dt; isPlayerMoving = true; playerAnimate = 0; playerAttackDirection = 0;  zombieMovementY -= speed * dt;
-                if (cameraY > 925) { cameraY -= speed * dt; zombieMovementY += speed * dt; }
-            }
-            if (Keyboard::isKeyPressed(Keyboard::A)) {
-                cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; playerAttackDirection = 3;  zombieMovementX += speed * dt;
-               // if (cameraX < 45) { cameraX += speed * dt; zombieMovementX -= speed * dt; }
-            }
-            if (Keyboard::isKeyPressed(Keyboard::D)) {
-                cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; playerAttackDirection = 1;  zombieMovementX -= speed * dt;
-                if (cameraX > 860) { cameraX -= speed * dt; zombieMovementX += speed * dt; }
-            }
 
-            if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::D)) {
-                cameraY += speed * dt * 0.293;
-                cameraX -= speed * dt * 0.293;
-                zombieMovementY -= speed * dt * 0.293;
-                zombieMovementX += speed * dt * 0.293;
-                // prevent camera from going too far left
-            }
-            if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::A)) {
-                cameraY += speed * dt * 0.293;
-                cameraX += speed * dt * 0.293;
-                zombieMovementY -= speed * dt * 0.293;
-                zombieMovementX -= speed * dt * 0.293;
-            }
-            if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::D)) {
-                cameraY -= speed * dt * 0.293;
-                cameraX -= speed * dt * 0.293;
-                zombieMovementY += speed * dt * 0.293;
-                zombieMovementX += speed * dt * 0.293;
-            }
-            if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::A)) {
-                cameraY -= speed * dt * 0.293;
-                cameraX += speed * dt * 0.293;
-                zombieMovementY += speed * dt * 0.293;
-                zombieMovementX -= speed * dt * 0.293;
-        }
-
-            if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false;
-
-            if (Keyboard::isKeyPressed(Keyboard::Space) && playerAttackTime >= 0.4) {
-                playerAttackKey = true;
-                playerAttackAnimationBOOL = true;
-                playerAttackTime = 0;
-            }
-        }
-        
-        if (playerAttackAnimationBOOL){ if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false; }
+        }*/
 
 
-         cerr<<"x "<<cameraX + 160 << " --- " <<"y " << cameraY + 130 << endl;
 
-         //loop for spawning zombies by a value
-        
+
+        if (gameStartedT) {
+
+
+
+            //show white background
+            renderTexture.clear(Color::White);
+            bool playerAllowToKnockback = true;
+            //calculate delta time
+            float dt = clock.restart().asSeconds();
+            //if (dt > 0.018f) dt = 0.017f;
+            playerAttackTime += dt;
+
+
+
+
+
+
+            //show animation if the player is moving also the player will animate in the direction they are moving
+            bool isPlayerMoving = false;
+
+
+            //store the zombie movement will be same with different framerate
+            float zombieMovementX = 0, zombieMovementY = 0;
+            //camera movement
+            if (!playerAttackAnimationBOOL) {
+                if (Keyboard::isKeyPressed(Keyboard::W)) {
+                    cameraY -= speed * dt; isPlayerMoving = true; playerAnimate = 2; playerAttackDirection = 2; zombieMovementY += speed * dt;
+                    if (cameraY < 70) { cameraY += speed * dt; zombieMovementY -= speed * dt; }
+                }
+                if (Keyboard::isKeyPressed(Keyboard::S)) {
+                    cameraY += speed * dt; isPlayerMoving = true; playerAnimate = 0; playerAttackDirection = 0;  zombieMovementY -= speed * dt;
+                    if (cameraY > 925) { cameraY -= speed * dt; zombieMovementY += speed * dt; }
+                }
+                if (Keyboard::isKeyPressed(Keyboard::A)) {
+                    cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; playerAttackDirection = 3;  zombieMovementX += speed * dt;
+                    // if (cameraX < 45) { cameraX += speed * dt; zombieMovementX -= speed * dt; }
+                }
+                if (Keyboard::isKeyPressed(Keyboard::D)) {
+                    cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; playerAttackDirection = 1;  zombieMovementX -= speed * dt;
+                    if (cameraX > 860) { cameraX -= speed * dt; zombieMovementX += speed * dt; }
+                }
+
+                if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::D)) {
+                    cameraY += speed * dt * 0.292893;
+                    cameraX -= speed * dt * 0.292893;
+                    zombieMovementY -= speed * dt * 0.292893;
+                    zombieMovementX += speed * dt * 0.292893;
+                    // prevent camera from going too far left
+                }
+                if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::A)) {
+                    cameraY += speed * dt * 0.292893;
+                    cameraX += speed * dt * 0.292893;
+                    zombieMovementY -= speed * dt * 0.292893;
+                    zombieMovementX -= speed * dt * 0.292893;
+                }
+                if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::D)) {
+                    cameraY -= speed * dt * 0.292893;
+                    cameraX -= speed * dt * 0.292893;
+                    zombieMovementY += speed * dt * 0.292893;
+                    zombieMovementX += speed * dt * 0.292893;
+                }
+                if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::A)) {
+                    cameraY -= speed * dt * 0.292893;
+                    cameraX += speed * dt * 0.292893;
+                    zombieMovementY += speed * dt * 0.292893;
+                    zombieMovementX -= speed * dt * 0.292893;
+                }
+
+                if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false;
+
+                if (Keyboard::isKeyPressed(Keyboard::Space) && playerAttackTime >= 0.4) {
+                    playerAttackKey = true;
+                    playerAttackAnimationBOOL = true;
+                    playerAttackTime = 0;
+                }
+            }
+
+            if (playerAttackAnimationBOOL) { if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false; }
+
+
+            cerr << "x " << cameraX + 160 << " --- " << "y " << cameraY + 130 << endl;
+
+            //loop for spawning zombies by a value
+
             if (zombieSpawn) {
                 int N;
                 switch (Level) {
@@ -650,203 +1029,218 @@ int main() {
                 case 10:
                     N = 20;
                     break;
-                
+
                 }
                 for (int i = 0; i < N; i++) {
-                    zombie.push_back(Zombie(Vector2f(cameraX,cameraY)));
+                    zombie.push_back(Zombie(Vector2f(cameraX, cameraY)));
                 }
                 zombieSpawn = false;
             }
-        
-        checkForNewLevel(zombie, Level,zombieSpawn);
 
-        if (MainPlayer.damageTakenCooldown > 0) MainPlayer.damageTakenCooldown -= dt;
+            checkForNewLevel(zombie, Level, zombieSpawn);
 
-
-        //draw background 
-        drawVisibleTiles(renderTexture, tileMap, tileSprite, tileSet, tileSize, cameraX, cameraY);
-
-		//draw dead zombies
-        for (auto& zDead : deadZombie) {
-            zDead.updateZombieDeath(dt, renderTexture,cameraX,cameraY);
-            renderTexture.draw(zDead.zombieDeathSprite);
-        }
-       
+            if (MainPlayer.damageTakenCooldown > 0) MainPlayer.damageTakenCooldown -= dt;
 
 
-         
-        //draw player
-        if (playerAttackDirection == 2) {
-            if (playerAttackAnimationBOOL) playerAttackAnimation(dt, playerSwordAnimation, playerAttackDirection, playerAttackAnimationBOOL, renderTexture);
-        }
-        playerAnimation(player, dt, isPlayerMoving, playerAnimate);
-        renderTexture.draw(player);
+            //draw background 
+            drawVisibleTiles(renderTexture, tileMap, tileSprite, tileSet, tileSize, cameraX, cameraY);
 
-
-
-
-        Vector2f getPlayerPosition = player.getPosition();
-        if (playerAttackKey) {
-
-            for (auto& z : zombie) {
-                switch (playerAnimate) {
-                case 0:
-
-
-
-                    if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y && z.XY.y < getPlayerPosition.y + 40) {
-                        z.health -= MainPlayer.damage;
-
-                        z.bleeding = true;
-
-                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
-                    }
-                    break;
-                case 1:
-                    if (z.XY.x > getPlayerPosition.x && z.XY.x < getPlayerPosition.x + 40 && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
-                        z.health -= MainPlayer.damage;
-                        z.bleeding = true;
-                        
-                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
-
-                    }
-                    break;
-                case 2:
-                    if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y - 40 && z.XY.y < getPlayerPosition.y) {
-                        z.health -= MainPlayer.damage;
-                        z.bleeding = true;
-                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
-                      
-
-                    }
-                    break;
-                case 3:
-                    if (z.XY.x > getPlayerPosition.x - 40 && z.XY.x < getPlayerPosition.x && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
-                        z.health -= MainPlayer.damage;
-                        z.bleeding = true;
-                        z.proccessZombieKnockback(z.XY, getPlayerPosition);
-                      
-
-                    }
-                    break;
-                }
-
+            //draw dead zombies
+            for (auto& zDead : deadZombie) {
+                zDead.updateZombieDeath(dt, renderTexture, cameraX, cameraY);
+                renderTexture.draw(zDead.zombieDeathSprite);
             }
 
-            playerAttackKey = false;
 
 
 
-        }
-
-
-
-
-
-
-
-        //draw zombies
-        //loop through the zombies and update their positions. continues as many as there are zombies in the vector
-        for (auto& z : zombie) {
-
-            z.updateLocationByPlayer(zombieMovementX, zombieMovementY, dt, playerAnimate);
-            z.updateZombieMove(width, height, dt);
-
-            z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage);
-            z.zombieKnockbackUpdate(dt);
-
-            if (z.health <= 0) deadZombie.push_back(ZombieDeath( z.XY , Vector2f(cameraX,cameraY)));
-
-            
-            //z.location();
-
-	     // Check distance between all zombies and push them apart if too close
-         float minDistance = 25.0f; // minimum distance be zombies
-		 for (auto& z1 : zombie) {
-                for (auto& z2 : zombie) {
-                    if (&z1 == &z2) continue; // skip same zombie
-
-                    float distance = distanceBetweenZombies(z1.XY, z2.XY);
-                    if (distance < minDistance) {
-                        Vector2f diff = z1.XY - z2.XY;
-                        if (distance != 0) diff /= distance; // normalize
-
-                        z1.XY += diff * (minDistance - distance) * 0.5f;
-                        z2.XY -= diff * (minDistance - distance) * 0.5f;
-                    }
-                }
+            //draw player
+            if (playerAttackDirection == 2) {
+                if (playerAttackAnimationBOOL) playerAttackAnimation(dt, playerSwordAnimation, playerAttackDirection, playerAttackAnimationBOOL, renderTexture);
             }
-         //RenderTexture& renderTexture, float dt, Sprite blood)
-            renderTexture.draw(z.zombieSprite);
-
-         
-        }
-        ////playerSwordAnimation(playerSwordAnimation,playerAnimate);
-        if (playerAttackDirection != 2) {
-            if (playerAttackAnimationBOOL) playerAttackAnimation(dt, playerSwordAnimation, playerAttackDirection, playerAttackAnimationBOOL, renderTexture);
-        }
-
-        for (int i = 0; i < zombie.size(); i++) {
-            if (zombie[i].health <= 0) {
-                zombie.erase(zombie.begin() + i);
-                i--; // go back one step because the list is now smaller
-            }
-        }
+            playerAnimation(player, dt, isPlayerMoving, playerAnimate);
+            renderTexture.draw(player);
 
 
-		//update health , level and zombie number text
-        //to_string convert number to string
-        healthText.setString("Health: " + to_string(MainPlayer.health));
-        levelNumber.setString("LVL: " + to_string(Level));
-        zombieNumber.setString("Zombies: " + to_string(zombie.size()));
-		//draw background for states
-        renderTexture.draw(healthBG);
 
 
-        
-        
-
-        for (auto& z : zombie) {
-            if (z.bleeding) {
-                z.zombieBleedAnimation(renderTexture, dt, bleeding);
-				renderTexture.draw(bleeding);
-            }
-        }
-
-
-        if (playerAllowToKnockback) {
-            if (MainPlayer.knockback.x != 0 || MainPlayer.knockback.y != 0) {
-                cameraX += MainPlayer.knockback.x * dt;
-                cameraY += MainPlayer.knockback.y * dt;
+            Vector2f getPlayerPosition = player.getPosition();
+            if (playerAttackKey) {
 
                 for (auto& z : zombie) {
-                    z.XY -= MainPlayer.knockback * dt;
+                    switch (playerAnimate) {
+                    case 0:
+
+
+
+                        if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y && z.XY.y < getPlayerPosition.y + 40) {
+                            z.health -= MainPlayer.damage;
+
+                            z.bleeding = true;
+
+                            z.proccessZombieKnockback(z.XY, getPlayerPosition);
+                        }
+                        break;
+                    case 1:
+                        if (z.XY.x > getPlayerPosition.x && z.XY.x < getPlayerPosition.x + 40 && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
+                            z.health -= MainPlayer.damage;
+                            z.bleeding = true;
+
+                            z.proccessZombieKnockback(z.XY, getPlayerPosition);
+
+                        }
+                        break;
+                    case 2:
+                        if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y - 40 && z.XY.y < getPlayerPosition.y) {
+                            z.health -= MainPlayer.damage;
+                            z.bleeding = true;
+                            z.proccessZombieKnockback(z.XY, getPlayerPosition);
+
+
+                        }
+                        break;
+                    case 3:
+                        if (z.XY.x > getPlayerPosition.x - 40 && z.XY.x < getPlayerPosition.x && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
+                            z.health -= MainPlayer.damage;
+                            z.bleeding = true;
+                            z.proccessZombieKnockback(z.XY, getPlayerPosition);
+
+
+                        }
+                        break;
+                    }
+
                 }
 
-                // reduce knockback over time
-                MainPlayer.knockback *= 0.9f; // 90% every frame
+                playerAttackKey = false;
 
-                // stop if very small
-                if (abs(MainPlayer.knockback.x) < 1 && abs(MainPlayer.knockback.y) < 1)
-                    MainPlayer.knockback = Vector2f(0, 0);
+
+
             }
-        }
 
 
 
 
-        //display the scaled window
+
+
+
+            //draw zombies
+            //loop through the zombies and update their positions. continues as many as there are zombies in the vector
+            for (auto& z : zombie) {
+
+                z.updateLocationByPlayer(zombieMovementX, zombieMovementY, dt, playerAnimate);
+                z.updateZombieMove(width, height, dt);
+
+                z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage);
+                z.zombieKnockbackUpdate(dt);
+
+                if (z.health <= 0) deadZombie.push_back(ZombieDeath(z.XY, Vector2f(cameraX, cameraY)));
+
+
+                //z.location();
+
+             // Check distance between all zombies and push them apart if too close
+                float minDistance = 25.0f; // minimum distance be zombies
+                for (auto& z1 : zombie) {
+                    for (auto& z2 : zombie) {
+                        if (&z1 == &z2) continue; // skip same zombie
+
+                        float distance = distanceBetweenZombies(z1.XY, z2.XY);
+                        if (distance < minDistance) {
+                            Vector2f diff = z1.XY - z2.XY;
+                            if (distance != 0) diff /= distance; // normalize
+
+                            z1.XY += diff * (minDistance - distance) * 0.5f;
+                            z2.XY -= diff * (minDistance - distance) * 0.5f;
+                        }
+                    }
+                }
+                //RenderTexture& renderTexture, float dt, Sprite blood)
+                renderTexture.draw(z.zombieSprite);
+
+
+            }
+            ////playerSwordAnimation(playerSwordAnimation,playerAnimate);
+            if (playerAttackDirection != 2) {
+                if (playerAttackAnimationBOOL) playerAttackAnimation(dt, playerSwordAnimation, playerAttackDirection, playerAttackAnimationBOOL, renderTexture);
+            }
+
+            for (int i = 0; i < zombie.size(); i++) {
+                if (zombie[i].health <= 0) {
+                    zombie.erase(zombie.begin() + i);
+                    i--; // go back one step because the list is now smaller
+                }
+            }
+
+
+            //update health , level and zombie number text
+            //to_string convert number to string
+            healthText.setString("Health: " + to_string(MainPlayer.health));
+            levelNumber.setString("LVL: " + to_string(Level));
+            zombieNumber.setString("Zombies: " + to_string(zombie.size()));
+            //draw background for states
+            renderTexture.draw(healthBG);
+
+
+
+
+
+            for (auto& z : zombie) {
+                if (z.bleeding) {
+                    z.zombieBleedAnimation(renderTexture, dt, bleeding);
+                    renderTexture.draw(bleeding);
+                }
+            }
+
+
+            if (playerAllowToKnockback) {
+                if (MainPlayer.knockback.x != 0 || MainPlayer.knockback.y != 0) {
+                    cameraX += MainPlayer.knockback.x * dt;
+                    cameraY += MainPlayer.knockback.y * dt;
+
+                    for (auto& z : zombie) {
+                        z.XY -= MainPlayer.knockback * dt;
+                    }
+
+                    // reduce knockback over time
+                    MainPlayer.knockback *= 0.9f; // 90% every frame
+
+                    // stop if very small
+                    if (abs(MainPlayer.knockback.x) < 1 && abs(MainPlayer.knockback.y) < 1)
+                        MainPlayer.knockback = Vector2f(0, 0);
+                }
+            }
+
+        }// if gameStartedT
+
+
+
+       
+            
+        
+
+    //display the scaled window
         renderTexture.display();
         Sprite screen(renderTexture.getTexture());
         screen.setScale(2.0f, 2.0f);
         window.clear();
         window.draw(screen);
 
-		//draw states in higher resolution
+        
+        if (gameStartedT) {
+        //draw states in higher resolution
         window.draw(healthText);
         window.draw(levelNumber);
         window.draw(zombieNumber);
-        
+    }
+
+
+        if (gameTheme)
+        {
+            window.draw(Enter);
+            window.draw(GameName);
+        }
+
 
         window.display();
 
