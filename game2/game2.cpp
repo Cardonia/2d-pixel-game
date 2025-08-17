@@ -445,7 +445,19 @@ void typeText(RenderTexture& renderTexture,RenderWindow& window, Text& text, con
 
 
 
+void showCutsceneBG(RenderTexture& renderTexture, Sprite& noFadeHouse, Sprite& noFadeTalkBar, int genderIndex) {
 
+    renderTexture.draw(noFadeHouse);
+    noFadeTalkBar.setPosition(0, 166);
+    if (genderIndex == 0) {
+
+        noFadeTalkBar.setTextureRect(IntRect(0, 0, 320, 74));
+    }
+    else {
+        noFadeTalkBar.setTextureRect(IntRect(0, 74, 320, 74));
+    }
+    renderTexture.draw(noFadeTalkBar);
+}
 
 
 
@@ -465,17 +477,17 @@ int main() {
     int tileSize = 16;
 
     vector<vector<int>> tileMap = loadMap("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/map.txt");
-	
+
     vector<Zombie> zombie;
     vector<ZombieDeath> deadZombie;
-    Texture tileSet, playerTex, swordTex,start,bloodTex,buttonTex,talkBarTex,houseTex;
+    Texture tileSet, playerTex, swordTex, start, bloodTex, buttonTex, talkBarTex, houseTex;
     if (
         !tileSet.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/tilesTex.png") ||
         !playerTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerTex.png") ||
         !swordTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/swordTex.png") ||
         !start.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/theme0.png") ||
         !buttonTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/buttonTex.png") ||
-		!houseTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/houseTex.png") ||
+        !houseTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/houseTex.png") ||
         !talkBarTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/talkingBar.png") ||
         !bloodTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/bloodTex.png") ||
         !ZombieDeath::zombieDeathTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieDeathTex.png") ||
@@ -488,13 +500,16 @@ int main() {
         cerr << "Error loading font\n";
     }
 
-    Sprite tileSprite, player, playerSwordAnimation,start1,bleeding,button,talkBar,house;
-	talkBar.setTexture(talkBarTex);
-	house.setTexture(houseTex);
+    Sprite tileSprite, player, playerSwordAnimation, start1, bleeding, button, talkBar, house, noFadeHouse, noFadeTalkBar;
+    noFadeTalkBar.setTexture(talkBarTex);
+    talkBar.setTexture(talkBarTex);
+    house.setTexture(houseTex);
+
+    noFadeHouse.setTexture(houseTex);
     Color color = house.getColor();
 
-	button.setTexture(buttonTex);
-	bleeding.setTexture(bloodTex);
+    button.setTexture(buttonTex);
+    bleeding.setTexture(bloodTex);
     start1.setTexture(start);
     player.setTexture(playerTex);
     player.setTextureRect(IntRect(0, 0, 16, 32));
@@ -502,9 +517,8 @@ int main() {
     tileSprite.setTexture(tileSet);
     playerSwordAnimation.setTexture(swordTex);
 
-	button.setPosition(198, 112);
+    button.setPosition(198, 112);
     playerSwordAnimation.setPosition(width / 2 + 6, height / 2 + 8);
-
 
 
     //creating a rectangle shape for health text background
@@ -517,12 +531,21 @@ int main() {
 
 
     //creating health text on screen
-    Text healthText,zombieNumber,levelNumber,Enter,GameName,dialog;
+    Text healthText, zombieNumber, levelNumber, Enter, GameName, dialog, SpaceButton;
+    SpaceButton.setFont(font);
+    SpaceButton.setCharacterSize(16);
+    SpaceButton.setFillColor(Color::White);
+    //SpaceButton.setPosition(Vector2f(250, 220));
+    SpaceButton.setPosition(Vector2f (500, 440));
+    SpaceButton.setString("Space");
+	SpaceButton.setStyle(Text::Bold);
+
 
     dialog.setFont(font);
-    dialog.setCharacterSize(18);
+    dialog.setCharacterSize(20);
     dialog.setFillColor(Color::Black);
-	dialog.setPosition(Vector2f(180, 385));
+    dialog.setPosition(Vector2f(190, 390));
+    //dialog.setPosition(Vector2f(100, 190));
 
     healthText.setFont(font);
     healthText.setCharacterSize(24);
@@ -546,19 +569,19 @@ int main() {
     Enter.setPosition(Vector2f(410, 235));
     Enter.setString("Enter");
 
-	GameName.setFont(font);
+    GameName.setFont(font);
     GameName.setCharacterSize(30);
     GameName.setFillColor(Color::Black);
     GameName.setPosition(Vector2f(350, 150));
-	GameName.setString("No Name Yet!");
-	GameName.setStyle(Text::Bold);
+    GameName.setString("No Name Yet!");
+    GameName.setStyle(Text::Bold);
 
 
 
     //float alpha = 0;
-	Vector2f worldPos = Vector2f(0.0f,0.0f);
-	//bool gameStarted = false;
-	int Level = 1;
+    Vector2f worldPos = Vector2f(0.0f, 0.0f);
+    //bool gameStarted = false;
+    int Level = 1;
     int zombieDamage = 10;
     int playerAnimate = 0;
     //for delta time
@@ -581,80 +604,86 @@ int main() {
 
 
 
-/*
-    while (true) {
-        handleEvents(window);  // check for close event
+    /*
+        while (true) {
+            handleEvents(window);  // check for close event
 
-        renderTexture.draw(start1);
-        buttonAnimation(renderTexture, button);
+            renderTexture.draw(start1);
+            buttonAnimation(renderTexture, button);
 
-        renderScreen(renderTexture, window, false);
-        window.draw(Enter);
-        window.draw(GameName);
-        window.display();
-        if (Keyboard::isKeyPressed(Keyboard::Enter)) gameStarted = true;
+            renderScreen(renderTexture, window, false);
+            window.draw(Enter);
+            window.draw(GameName);
+            window.display();
+            if (Keyboard::isKeyPressed(Keyboard::Enter)) gameStarted = true;
 
-        while (gameStarted) {
+            while (gameStarted) {
 
-            while (alpha < 255) {
-                handleEvents(window);
-                alpha += 1; // increase alpha slowly
-                color.a = alpha; // set new alpha
-                house.setColor(color);
+                while (alpha < 255) {
+                    handleEvents(window);
+                    alpha += 1; // increase alpha slowly
+                    color.a = alpha; // set new alpha
+                    house.setColor(color);
 
-                renderTexture.draw(house);
+                    renderTexture.draw(house);
 
-                renderScreen(renderTexture, window, false);
-                window.display();
+                    renderScreen(renderTexture, window, false);
+                    window.display();
+
+                }
+
+
+
+                alpha = 0; // reset alpha for next fade in
+                while (alpha < 255) {
+                    handleEvents(window);
+                    alpha += 1.5; // increase alpha slowly
+                    color.a = alpha; // set new alpha
+                    talkBar.setColor(color);
+                    talkBar.setPosition(0, 166);
+                    talkBar.setTextureRect(IntRect(0, 0, 320, 74));
+                    renderTexture.draw(talkBar);
+
+                    renderScreen(renderTexture, window, false);
+                    window.display();
+
+                }
+                typeText(renderTexture, window, dialog, "Are You Really .... Have to? . . . \nI Want You Here.", 100);
+
+                while (window.isOpen()) {
+                    cerr << "Game Started\n";
+                    handleEvents(window);
+                    window.display();
+                }
+
 
             }
-
-
-
-            alpha = 0; // reset alpha for next fade in
-            while (alpha < 255) {
-                handleEvents(window);
-                alpha += 1.5; // increase alpha slowly
-                color.a = alpha; // set new alpha
-                talkBar.setColor(color);
-                talkBar.setPosition(0, 166);
-                talkBar.setTextureRect(IntRect(0, 0, 320, 74));
-                renderTexture.draw(talkBar);
-
-                renderScreen(renderTexture, window, false);
-                window.display();
-
-            }
-            typeText(renderTexture, window, dialog, "Are You Really .... Have to? . . . \nI Want You Here.", 100);
-
-            while (window.isOpen()) {
-                cerr << "Game Started\n";
-                handleEvents(window);
-                window.display();
-            }
-
 
         }
 
-    }
+    */
+    static int typingI = 0;
+    static float timeTypingI = 0;
 
-*/
 
     bool gameTheme = true;
-	bool gameStartedT = false;
+    bool gameStartedT = false;
 
 
     bool gameStarted = false;
     bool fadingHouse = false;
     bool fadingTalkBar = false;
     bool typingDialog = false;
-
-    int alpha = 0,alpha2=0;
-  //  sf::Color color = sf::Color::White;
+    bool showSpaceButton = false;
+	bool showBGCutscene = false;
+	bool typingDialog1 = false;
+    bool typingDialogContinues = false;
+    int alpha = 0, alpha2 = 0;
+    //  sf::Color color = sf::Color::White;
     sf::Color houseColor = sf::Color::White;
     sf::Color talkBarColor = sf::Color::White;
 
-    
+
 
 
     // Game loop
@@ -676,8 +705,10 @@ int main() {
                 window.close();
             }
         }
-		renderTexture.clear(Color::White);
-        // ---- MENU STATE ----
+
+        float dt = clock.restart().asSeconds();
+        renderTexture.clear(Color::Black);
+        // ---- MENU STATE ---- 
         if (gameTheme)
         {
             renderTexture.clear();
@@ -686,88 +717,177 @@ int main() {
 
             window.draw(Enter);
             window.draw(GameName);
-            
+
 
             if (Keyboard::isKeyPressed(Keyboard::Enter))
             {
-               
+
                 fadingHouse = true;
-				gameTheme = false; 
-               // alpha = 0;
+                gameTheme = false;
+                // alpha = 0;
             }
-        } 
-        
-        
+        }
+
+
         if (fadingHouse)
         {
-            if (alpha < 255)
+            if (alpha <= 255)
             {
                 alpha += 2; // fade speed
                 houseColor.a = alpha;
                 house.setColor(houseColor);
-
                 //renderTexture.clear();
                 renderTexture.draw(house);
             }
+            
             else {
                 fadingHouse = false;
                 fadingTalkBar = true;
-				//alpha = 0;
+                alpha = 260;
+               renderTexture.clear(Color::White);
+                renderTexture.draw(noFadeHouse);
             }
         }
-        
-        
+
+
 
         if (fadingTalkBar)
-        { 
-            
-            if (alpha2 < 255)
+        {
+
+            if (alpha2 <= 255)
             {
                 alpha2 += 2;
                 talkBarColor.a = alpha2;
                 talkBar.setColor(talkBarColor);
-               // renderTexture.clear();
-               // renderTexture.draw(house);
+                // renderTexture.clear();
+                // renderTexture.draw(house);
                 talkBar.setPosition(0, 166);
                 talkBar.setTextureRect(IntRect(0, 0, 320, 74));
                 //renderTexture.clear();
 
+                houseColor.a = 255;
+                house.setColor(houseColor);
+                renderTexture.draw(house);
+
+
+               // renderTexture.draw(noFadeHouse);
                 renderTexture.draw(talkBar);
             }
-            else 
+
+           // if (alpha2 < 250) 
+               // showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, 0);
+
+            else
             {
                 fadingTalkBar = false;
                 typingDialog = true;
                 clock.restart();
                 dialog.setString(""); // clear text first
-			}
+
+
+
+
+                renderTexture.clear(Color::Transparent);
+                
+               // noFadeTalkBar.setPosition(0, 166);
+                
+
+                   // noFadeTalkBar.setTextureRect(IntRect(0, 0, 320, 74));
+              
+              //  renderTexture.draw(noFadeTalkBar);
+
+
+
+
+            }
         }
 
         if (typingDialog)
         {
-			static int typingI = 0;
-			string  message = "Are You Really .... Have to? . . . \nI Want You Here.";
+            typingDialogContinues = true;
+            string  message = "Are You Really .... Have to? . . . \nI Want You To Be Here.";
             string shown = "";
-            if(typingI >= message.size())typingDialog = false; // finished typing
+            
+
             shown = message.substr(0, typingI);
-			typingI++;
+            typingI++;
             dialog.setString(shown);
-			cerr << "Typing: " << shown << endl;
-          //  renderTexture.draw(talkBar);
-			//renderTexture.clear(Color::White);
-            renderTexture.draw(dialog);
+            cerr << "Typing: " << shown << endl;
+            //  renderTexture.draw(talkBar);
+              //renderTexture.clear(Color::White);
+            //noFadeTalkBar.setPosition(0, 166);
+           // noFadeTalkBar.setTextureRect(IntRect(0, 0, 320, 74));
+
+
+           
+
+            showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar,0);
+
+           // renderTexture.draw(noFadeHouse);
+           // renderTexture.draw(noFadeTalkBar);
+            if (typingI >= message.size()) {
+               
+				timeTypingI += dt; // assuming 60 FPS, adjust accordingly
+                cerr << timeTypingI << endl;
+                if (timeTypingI >= 2.0f) { // wait for 2 seconds before resetting
+                    //renderTexture.draw(SpaceButton);
+                    cerr << "run" << endl;
+                    showSpaceButton = true;
+                    if (Keyboard::isKeyPressed(Keyboard::Space)) {
+                        typingDialog = false;
+                        showSpaceButton = false;
+                        typingDialog1 = true;
+						typingI = 0; // reset typing index
+                        timeTypingI = 0;
+
+                    }
+                }
+            }
+            //renderTexture.draw(dialog);
             sleep(milliseconds(100));
         }
+        if (typingDialog1) {
         
+            string  message = "kjJKFHKHGABKGIUGH";
+            string shown = "";
+
+
+            shown = message.substr(0, typingI);
+            typingI++;
+            dialog.setString(shown);
         
+            showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, 1);
+            if (typingI >= message.size()) {
+
+                timeTypingI += dt; // assuming 60 FPS, adjust accordingly
+                cerr << timeTypingI << endl;
+                if (timeTypingI >= 2.0f) { // wait for 2 seconds before resetting
+                    //renderTexture.draw(SpaceButton);
+                    cerr << "run" << endl;
+                    showSpaceButton = true;
+                    if (Keyboard::isKeyPressed(Keyboard::Space)) {
+                        typingDialog = false;
+                        showSpaceButton = false;
+                        typingDialog1 = false;
+                        typingI = 0; // reset typing index
+                        timeTypingI = 0;
+
+                    }
+                }
+            }
+            sleep(milliseconds(100));
+        
+        }
+
+
         /*
         void typeText(RenderTexture & renderTexture, RenderWindow & window, Text & text, const , int speedMs = 500)
         {
-            
+
             for (size_t i = 0; i <= message.size(); i++)
             {
                 handleEvents(window);
-                
+
                 text.setString(shown);
                 renderScreen(renderTexture, window, false);
                 window.draw(text);
@@ -779,14 +899,14 @@ int main() {
                 sleep(milliseconds(speedMs)); // wait a little
             }
         }
-        
-        
+
+
         /*
         // ---- GAME STATE ----
         else
         {
-           
-         
+
+
          string shown = "";
     for (size_t i = 0; i <= message.size(); i++)
     {
@@ -802,7 +922,7 @@ int main() {
 
         sleep(milliseconds(speedMs)); // wait a little
     }
-            
+
                 else
                 {
                     fadingTalkBar = false;
@@ -920,7 +1040,7 @@ int main() {
             renderTexture.clear(Color::White);
             bool playerAllowToKnockback = true;
             //calculate delta time
-            float dt = clock.restart().asSeconds();
+            //float dt = clock.restart().asSeconds();
             //if (dt > 0.018f) dt = 0.017f;
             playerAttackTime += dt;
 
@@ -1215,26 +1335,30 @@ int main() {
 
 
 
-       
-            
-        
 
-    //display the scaled window
+
+        // if (showSpaceButton) renderTexture.draw(SpaceButton);
+
+        //display the scaled window
         renderTexture.display();
         Sprite screen(renderTexture.getTexture());
         screen.setScale(2.0f, 2.0f);
         window.clear();
         window.draw(screen);
 
-        
+
         if (gameStartedT) {
-        //draw states in higher resolution
-        window.draw(healthText);
-        window.draw(levelNumber);
-        window.draw(zombieNumber);
-    }
+            //draw states in higher resolution
+            window.draw(healthText);
+            window.draw(levelNumber);
+            window.draw(zombieNumber);
+        }
 
+        //if (typingDialog) window.draw(dialog);
 
+        if(typingDialogContinues)window.draw(dialog);
+
+        if (showSpaceButton) window.draw(SpaceButton);
         if (gameTheme)
         {
             window.draw(Enter);
