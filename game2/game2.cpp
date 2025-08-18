@@ -460,6 +460,35 @@ void showCutsceneBG(RenderTexture& renderTexture, Sprite& noFadeHouse, Sprite& n
 }
 
 
+void typingDialogFunc(bool& showSpaceButton,bool& typingDialogContinues, RenderTexture& renderTexture, Sprite& noFadeHouse, Sprite& noFadeTalkBar, unsigned char gender, Text& dialog, float dt, string text, bool& currentDialog, bool& nextDialog) {
+
+
+    static int typingI = 0;
+    static float timeTypingI = 0;
+    typingDialogContinues = true;
+    string message = text;
+    string shown = "";
+    shown = message.substr(0, typingI);
+    typingI++;
+    dialog.setString(shown);
+    showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, gender);
+    if (typingI >= message.size()) {
+        timeTypingI += dt;
+        if (timeTypingI >= 2.0f) { // wait for 2 seconds before resetting
+
+            showSpaceButton = true;
+            if (Keyboard::isKeyPressed(Keyboard::Space)) {
+                currentDialog = false;
+                showSpaceButton = false;
+                nextDialog = true;
+                typingI = 0; // reset typing index
+                timeTypingI = 0;
+            }
+        }
+    }
+    sleep(milliseconds(100));
+}
+
 
 
 int main() {
@@ -604,66 +633,9 @@ int main() {
 
 
 
-    /*
-        while (true) {
-            handleEvents(window);  // check for close event
-
-            renderTexture.draw(start1);
-            buttonAnimation(renderTexture, button);
-
-            renderScreen(renderTexture, window, false);
-            window.draw(Enter);
-            window.draw(GameName);
-            window.display();
-            if (Keyboard::isKeyPressed(Keyboard::Enter)) gameStarted = true;
-
-            while (gameStarted) {
-
-                while (alpha < 255) {
-                    handleEvents(window);
-                    alpha += 1; // increase alpha slowly
-                    color.a = alpha; // set new alpha
-                    house.setColor(color);
-
-                    renderTexture.draw(house);
-
-                    renderScreen(renderTexture, window, false);
-                    window.display();
-
-                }
-
-
-
-                alpha = 0; // reset alpha for next fade in
-                while (alpha < 255) {
-                    handleEvents(window);
-                    alpha += 1.5; // increase alpha slowly
-                    color.a = alpha; // set new alpha
-                    talkBar.setColor(color);
-                    talkBar.setPosition(0, 166);
-                    talkBar.setTextureRect(IntRect(0, 0, 320, 74));
-                    renderTexture.draw(talkBar);
-
-                    renderScreen(renderTexture, window, false);
-                    window.display();
-
-                }
-                typeText(renderTexture, window, dialog, "Are You Really .... Have to? . . . \nI Want You Here.", 100);
-
-                while (window.isOpen()) {
-                    cerr << "Game Started\n";
-                    handleEvents(window);
-                    window.display();
-                }
-
-
-            }
-
-        }
-
-    */
-    static int typingI = 0;
-    static float timeTypingI = 0;
+   
+  //  static int typingI = 0;
+    //static float timeTypingI = 0;
 
 
     bool gameTheme = true;
@@ -673,29 +645,30 @@ int main() {
     bool gameStarted = false;
     bool fadingHouse = false;
     bool fadingTalkBar = false;
-    bool typingDialog = false;
+    
     bool showSpaceButton = false;
 	bool showBGCutscene = false;
-	bool typingDialog1 = false;
+
+    bool 
+        typingDialog = false,
+        typingDialog1 = false,
+        typingDialog2 = false,
+        typingDialog3 = false,
+        typingDialog4 = false;
+
     bool typingDialogContinues = false;
-    int alpha = 0, alpha2 = 0;
-    //  sf::Color color = sf::Color::White;
-    sf::Color houseColor = sf::Color::White;
-    sf::Color talkBarColor = sf::Color::White;
+
+    int alpha = 0;
+
+    Color houseColor = Color::White;
+    Color talkBarColor = Color::White;
 
 
 
 
     // Game loop
     while (window.isOpen()) {
-        //renderTexture.clear();
-        /* Event event;
-         while (window.pollEvent(event)) {
-
-             if (event.type == Event::Closed)
-                 window.close();
-         }*/
-
+       
 
         Event event;
         while (window.pollEvent(event))
@@ -728,55 +701,47 @@ int main() {
             }
         }
 
-
-        if (fadingHouse)
-        {
-            if (alpha <= 255)
-            {
-                alpha += 2; // fade speed
+        if (fadingHouse) {
+            if (alpha <= 255) {
+                alpha += 2;
                 houseColor.a = alpha;
                 house.setColor(houseColor);
-                //renderTexture.clear();
                 renderTexture.draw(house);
             }
-            
             else {
                 fadingHouse = false;
                 fadingTalkBar = true;
-                alpha = 260;
-               renderTexture.clear(Color::White);
+                alpha = 0;
+            }
+            //fix 1 frame glitch between fade house and no fade house
+            if (alpha > 250 && alpha <= 256) {
+                renderTexture.clear(Color::White);
                 renderTexture.draw(noFadeHouse);
             }
         }
 
-
+		
+        
 
         if (fadingTalkBar)
         {
-
-            if (alpha2 <= 255)
+            if (alpha <= 255)
             {
-                alpha2 += 2;
-                talkBarColor.a = alpha2;
+                alpha += 2;
+                talkBarColor.a = alpha;
                 talkBar.setColor(talkBarColor);
-                // renderTexture.clear();
-                // renderTexture.draw(house);
                 talkBar.setPosition(0, 166);
                 talkBar.setTextureRect(IntRect(0, 0, 320, 74));
-                //renderTexture.clear();
 
                 houseColor.a = 255;
                 house.setColor(houseColor);
                 renderTexture.draw(house);
 
 
-               // renderTexture.draw(noFadeHouse);
                 renderTexture.draw(talkBar);
             }
 
-           // if (alpha2 < 250) 
-               // showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, 0);
-
+           
             else
             {
                 fadingTalkBar = false;
@@ -784,250 +749,32 @@ int main() {
                 clock.restart();
                 dialog.setString(""); // clear text first
 
-
-
-
                 renderTexture.clear(Color::Transparent);
-                
-               // noFadeTalkBar.setPosition(0, 166);
-                
-
-                   // noFadeTalkBar.setTextureRect(IntRect(0, 0, 320, 74));
-              
-              //  renderTexture.draw(noFadeTalkBar);
-
-
-
-
+            
+            }
+            //fix 1 frame glitch between fade talkBar and no fade talkBar+
+            if (alpha > 250 && alpha <= 256) { 
+            noFadeTalkBar.setPosition(0, 166); 
+            noFadeTalkBar.setTextureRect(IntRect(0, 0, 320, 74));
+            renderTexture.draw(noFadeTalkBar); 
             }
         }
 
-        if (typingDialog)
-        {
-            typingDialogContinues = true;
-            string  message = "Are You Really .... Have to? . . . \nI Want You To Be Here.";
-            string shown = "";
-            
+		//Handling all game dialiog with typingDialogFunc function. just need to pass the parameters like gender , message , current if statement , next if statement
 
-            shown = message.substr(0, typingI);
-            typingI++;
-            dialog.setString(shown);
-            cerr << "Typing: " << shown << endl;
-            //  renderTexture.draw(talkBar);
-              //renderTexture.clear(Color::White);
-            //noFadeTalkBar.setPosition(0, 166);
-           // noFadeTalkBar.setTextureRect(IntRect(0, 0, 320, 74));
-
-
-           
-
-            showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar,0);
-
-           // renderTexture.draw(noFadeHouse);
-           // renderTexture.draw(noFadeTalkBar);
-            if (typingI >= message.size()) {
-               
-				timeTypingI += dt; // assuming 60 FPS, adjust accordingly
-                cerr << timeTypingI << endl;
-                if (timeTypingI >= 2.0f) { // wait for 2 seconds before resetting
-                    //renderTexture.draw(SpaceButton);
-                    cerr << "run" << endl;
-                    showSpaceButton = true;
-                    if (Keyboard::isKeyPressed(Keyboard::Space)) {
-                        typingDialog = false;
-                        showSpaceButton = false;
-                        typingDialog1 = true;
-						typingI = 0; // reset typing index
-                        timeTypingI = 0;
-
-                    }
-                }
-            }
-            //renderTexture.draw(dialog);
-            sleep(milliseconds(100));
+        //typingDialogFunc(             ,                      ,              ,             ,             ,gender ,      ,    , text,currentDialog  , nextDialog ); 
+        //typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, gender, dialog, dt, text, currentDialog, nextDialog);
+        
+        if (typingDialog) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "Are You Really .... Have to? . . . \nI Want You To Be Here.", typingDialog, typingDialog1);
         }
         if (typingDialog1) {
-        
-            string  message = "kjJKFHKHGABKGIUGH";
-            string shown = "";
-
-
-            shown = message.substr(0, typingI);
-            typingI++;
-            dialog.setString(shown);
-        
-            showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, 1);
-            if (typingI >= message.size()) {
-
-                timeTypingI += dt; // assuming 60 FPS, adjust accordingly
-                cerr << timeTypingI << endl;
-                if (timeTypingI >= 2.0f) { // wait for 2 seconds before resetting
-                    //renderTexture.draw(SpaceButton);
-                    cerr << "run" << endl;
-                    showSpaceButton = true;
-                    if (Keyboard::isKeyPressed(Keyboard::Space)) {
-                        typingDialog = false;
-                        showSpaceButton = false;
-                        typingDialog1 = false;
-                        typingI = 0; // reset typing index
-                        timeTypingI = 0;
-
-                    }
-                }
-            }
-            sleep(milliseconds(100));
-        
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "My Dear . ..I Have No Choice.      \nI Must Go", typingDialog1, typingDialog2);
         }
-
-
-        /*
-        void typeText(RenderTexture & renderTexture, RenderWindow & window, Text & text, const , int speedMs = 500)
-        {
-
-            for (size_t i = 0; i <= message.size(); i++)
-            {
-                handleEvents(window);
-
-                text.setString(shown);
-                renderScreen(renderTexture, window, false);
-                window.draw(text);
-                window.display();
-                // renderScreen(renderTexture, window,true);
-
-
-
-                sleep(milliseconds(speedMs)); // wait a little
-            }
+        if (typingDialog2) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "How Long This Battle Will Last?              ", typingDialog2, typingDialog3);
         }
-
-
-        /*
-        // ---- GAME STATE ----
-        else
-        {
-
-
-         string shown = "";
-    for (size_t i = 0; i <= message.size(); i++)
-    {
-        handleEvents(window);
-        shown = message.substr(0, i);
-        text.setString(shown);
-        renderScreen(renderTexture, window, false);
-        window.draw(text);
-        window.display();
-       // renderScreen(renderTexture, window,true);
-
-
-
-        sleep(milliseconds(speedMs)); // wait a little
-    }
-
-                else
-                {
-                    fadingTalkBar = false;
-                    typingDialog = true;
-                    clock.restart();
-                    dialog.setString(""); // clear text first
-                }
-            }
-            else if (typingDialog)
-            {
-                std::string full = "Are You Really .... Have to? . . . \nI Want You Here.";
-                int charsToShow = clock.getElapsedTime().asMilliseconds() / 100; // 100ms per char
-
-                if (charsToShow <= full.size())
-                    dialog.setString(full.substr(0, charsToShow));
-                else
-                    typingDialog = false; // finished typing
-
-                renderTexture.clear();
-                renderTexture.draw(talkBar);
-                renderTexture.draw(dialog);
-                renderScreen(renderTexture, window, false);
-                window.display();
-            }
-            else
-            {
-                // here game continues normally
-                renderTexture.clear();
-                renderTexture.draw(dialog);
-                renderScreen(renderTexture, window, false);
-                window.display();
-            }
-        }
-
-
-
-
-
-        /*
-        void renderScreen(RenderTexture & renderTexture, RenderWindow & window) {
-            renderTexture.display();
-            Sprite screen(renderTexture.getTexture());
-            screen.setScale(2.0f, 2.0f);
-            window.clear(Color::White);
-            window.draw(screen);
-            //window.display();
-        }
-*/
-/*
-        //while (!gameStarted) {
-        while (true) {
-            handleEvents(window);  // check for close event
-
-            renderTexture.draw(start1);
-            buttonAnimation(renderTexture,button);
-
-            renderScreen(renderTexture, window,false);
-            window.draw(Enter);
-            window.draw(GameName);
-            window.display();
-            if (Keyboard::isKeyPressed(Keyboard::Enter)) gameStarted = true;
-
-            while (gameStarted) {
-
-                while (alpha < 255) {
-                    handleEvents(window);
-                    alpha += 1; // increase alpha slowly
-                    color.a = alpha; // set new alpha
-                    house.setColor(color);
-
-                    renderTexture.draw(house);
-
-                    renderScreen(renderTexture, window,false);
-                    window.display();
-
-                }
-
-
-
-                alpha = 0; // reset alpha for next fade in
-                while (alpha < 255) {
-                    handleEvents(window);
-                    alpha += 1.5; // increase alpha slowly
-                    color.a = alpha; // set new alpha
-                    talkBar.setColor(color);
-                    talkBar.setPosition(0, 166);
-                    talkBar.setTextureRect(IntRect(0, 0, 320, 74));
-                    renderTexture.draw(talkBar);
-
-                    renderScreen(renderTexture, window, false);
-                    window.display();
-
-                }
-                typeText(renderTexture , window, dialog, "Are You Really .... Have to? . . . \nI Want You Here.", 100);
-
-                while (true) {
-                    cerr << "Game Started\n";
-                    handleEvents(window);
-                    window.display();
-                }
-
-
-            }
-
-        }*/
+      
 
 
 
@@ -1336,8 +1083,6 @@ int main() {
 
 
 
-
-        // if (showSpaceButton) renderTexture.draw(SpaceButton);
 
         //display the scaled window
         renderTexture.display();
