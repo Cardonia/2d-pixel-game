@@ -93,7 +93,7 @@ public:
     
     bool isAttacking = false;
     int health = 100;
-    int damage = 20;;
+    int damage = 200;;
     //cooldown time if zombie took a damage
     float damageTakenCooldown = 0.0f;
     Vector2f knockback = Vector2f(0, 0);
@@ -474,7 +474,7 @@ void typingDialogFunc(bool& showSpaceButton,bool& typingDialogContinues, RenderT
     showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, gender);
     if (typingI >= message.size()) {
         timeTypingI += dt;
-        if (timeTypingI >= 2.0f) { // wait for 2 seconds before resetting
+        if (timeTypingI >= 1.0f) { // wait for 2 seconds before resetting
 
             showSpaceButton = true;
             if (Keyboard::isKeyPressed(Keyboard::Space)) {
@@ -509,16 +509,18 @@ int main() {
 
     vector<Zombie> zombie;
     vector<ZombieDeath> deadZombie;
-    Texture tileSet, playerTex, swordTex, start, bloodTex, buttonTex, talkBarTex, houseTex;
+    Texture tileSet, playerTex, swordTex, start, bloodTex, buttonTex, talkBarTex, houseTex, playerDeathTex,outSideHouseTex;
     if (
         !tileSet.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/tilesTex.png") ||
         !playerTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerTex.png") ||
         !swordTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/swordTex.png") ||
         !start.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/theme0.png") ||
         !buttonTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/buttonTex.png") ||
+        !outSideHouseTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/frontHouseTex.png") ||
         !houseTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/houseTex.png") ||
         !talkBarTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/talkingBar.png") ||
         !bloodTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/bloodTex.png") ||
+        !playerDeathTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerDeathTex.png") ||
         !ZombieDeath::zombieDeathTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieDeathTex.png") ||
         !Zombie::zombieTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/zombieTex.png")) {
         cerr << "Error loading Textures\n";
@@ -529,7 +531,12 @@ int main() {
         cerr << "Error loading font\n";
     }
 
-    Sprite tileSprite, player, playerSwordAnimation, start1, bleeding, button, talkBar, house, noFadeHouse, noFadeTalkBar;
+    Sprite tileSprite, player, playerSwordAnimation, start1, bleeding, button, talkBar, house, noFadeHouse, noFadeTalkBar, playerDeath, outSideHouse;
+	outSideHouse.setTexture(outSideHouseTex);
+
+    playerDeath.setTexture(playerDeathTex);
+    playerDeath.setPosition(width / 2 - player.getGlobalBounds().width / 2 - 24, height / 2 - player.getGlobalBounds().height / 2 - 32);
+
     noFadeTalkBar.setTexture(talkBarTex);
     talkBar.setTexture(talkBarTex);
     house.setTexture(houseTex);
@@ -560,14 +567,49 @@ int main() {
 
 
     //creating health text on screen
-    Text healthText, zombieNumber, levelNumber, Enter, GameName, dialog, SpaceButton;
+    Text healthText, zombieNumber, levelNumber, Enter, GameName, dialog, SpaceButton, afterDialogText, afterDialogText2, afterDialogText3,youDied,tryAgain;
+    
+	youDied.setFont(font);
+	youDied.setCharacterSize(40);
+	youDied.setFillColor(Color::White);
+	youDied.setPosition(Vector2f(240, 150));
+	youDied.setString("You Died!");
+
+	tryAgain.setFont(font);
+	tryAgain.setCharacterSize(25);
+	tryAgain.setFillColor(Color::White);
+	tryAgain.setPosition(Vector2f(200, 220));
+	tryAgain.setString("Press E key to try again!");
+
+
+    afterDialogText.setFont(font);
+    afterDialogText.setCharacterSize(40);
+    afterDialogText.setFillColor(Color::White);
+    afterDialogText.setPosition(Vector2f(200, 100));
+    afterDialogText.setString("After 10 Days");
+
+
+    afterDialogText2.setFont(font);
+    afterDialogText2.setCharacterSize(25);
+    afterDialogText2.setFillColor(Color::White);
+    afterDialogText2.setPosition(Vector2f(170, 200));
+    afterDialogText2.setString("The Bloody War is Over But...");
+
+
+    afterDialogText3.setFont(font);
+    afterDialogText3.setCharacterSize(25);
+    afterDialogText3.setFillColor(Color::White);
+    afterDialogText3.setPosition(Vector2f(190, 250));
+    afterDialogText3.setString("There Is A New Enemy!");
+
+
     SpaceButton.setFont(font);
     SpaceButton.setCharacterSize(16);
     SpaceButton.setFillColor(Color::White);
     //SpaceButton.setPosition(Vector2f(250, 220));
-    SpaceButton.setPosition(Vector2f (500, 440));
+    SpaceButton.setPosition(Vector2f(500, 440));
     SpaceButton.setString("Space");
-	SpaceButton.setStyle(Text::Bold);
+    SpaceButton.setStyle(Text::Bold);
 
 
     dialog.setFont(font);
@@ -578,7 +620,7 @@ int main() {
 
     healthText.setFont(font);
     healthText.setCharacterSize(24);
-    healthText.setFillColor(Color::Red);
+    healthText.setFillColor(Color::Green);
     healthText.setPosition(Vector2f(12, 9));
 
 
@@ -590,7 +632,7 @@ int main() {
     zombieNumber.setFont(font);
     zombieNumber.setCharacterSize(24);
     zombieNumber.setFillColor(Color::Black);
-    zombieNumber.setPosition(Vector2f(209, 9));
+    zombieNumber.setPosition(Vector2f(212, 9));
 
     Enter.setFont(font);
     Enter.setCharacterSize(30);
@@ -610,7 +652,7 @@ int main() {
     //float alpha = 0;
     Vector2f worldPos = Vector2f(0.0f, 0.0f);
     //bool gameStarted = false;
-    int Level = 1;
+    int Level = 10;
     int zombieDamage = 10;
     int playerAnimate = 0;
     //for delta time
@@ -623,6 +665,7 @@ int main() {
     bool playerAttackAnimationBOOL = false;
     static int playerAttackDirection = 0;
     float playerAttackTime = 0;
+    int N;
 
 
 
@@ -633,28 +676,36 @@ int main() {
 
 
 
-   
-  //  static int typingI = 0;
-    //static float timeTypingI = 0;
+    //  static int typingI = 0;
+      //static float timeTypingI = 0;
 
-
+	bool endGameCutscene = false;
+	float endGameCutsceneTime = 0;
     bool gameTheme = true;
-    bool gameStartedT = false;
-
+    bool gameStartedT = true;
+    bool showBlackFading = false;
 
     bool gameStarted = false;
     bool fadingHouse = false;
     bool fadingTalkBar = false;
-    
-    bool showSpaceButton = false;
-	bool showBGCutscene = false;
 
-    bool 
+    bool showSpaceButton = false;
+    bool showBGCutscene = false;
+    bool playerIsDead = false;
+
+    bool
         typingDialog = false,
         typingDialog1 = false,
         typingDialog2 = false,
         typingDialog3 = false,
-        typingDialog4 = false;
+        typingDialog4 = false,
+        typingDialog5 = false,
+        typingDialog6 = false,
+        typingDialog7 = false,
+        typingDialog8 = false,
+        typingDialogEND = false;
+
+    float typingDialogENDTime = 0;
 
     bool typingDialogContinues = false;
 
@@ -663,12 +714,18 @@ int main() {
     Color houseColor = Color::White;
     Color talkBarColor = Color::White;
 
+    bool drawDeathFade = false;
+    RectangleShape fadeRect(Vector2f(window.getSize()));
+    fadeRect.setFillColor(Color(0, 0, 0, 0));
+    int deathBlackAlpha = 0;
 
-
+     float playerDeathAnimateTime = 0;
+     int playerDeathAnimateFrame = 0;
+     bool realZombieSpawn = true;
 
     // Game loop
     while (window.isOpen()) {
-       
+
 
         Event event;
         while (window.pollEvent(event))
@@ -682,6 +739,7 @@ int main() {
         float dt = clock.restart().asSeconds();
         renderTexture.clear(Color::Black);
         // ---- MENU STATE ---- 
+        /*
         if (gameTheme)
         {
             renderTexture.clear();
@@ -720,8 +778,8 @@ int main() {
             }
         }
 
-		
-        
+
+
 
         if (fadingTalkBar)
         {
@@ -741,7 +799,7 @@ int main() {
                 renderTexture.draw(talkBar);
             }
 
-           
+
             else
             {
                 fadingTalkBar = false;
@@ -750,31 +808,81 @@ int main() {
                 dialog.setString(""); // clear text first
 
                 renderTexture.clear(Color::Transparent);
-            
+
             }
             //fix 1 frame glitch between fade talkBar and no fade talkBar+
-            if (alpha > 250 && alpha <= 256) { 
-            noFadeTalkBar.setPosition(0, 166); 
+            if (alpha > 250 && alpha <= 256) {
+            noFadeTalkBar.setPosition(0, 166);
             noFadeTalkBar.setTextureRect(IntRect(0, 0, 320, 74));
-            renderTexture.draw(noFadeTalkBar); 
+            renderTexture.draw(noFadeTalkBar);
             }
         }
 
-		//Handling all game dialiog with typingDialogFunc function. just need to pass the parameters like gender , message , current if statement , next if statement
+        //Handling all game dialog with typingDialogFunc function. just need to pass the parameters like gender , message , current if statement , next if statement
 
-        //typingDialogFunc(             ,                      ,              ,             ,             ,gender ,      ,    , text,currentDialog  , nextDialog ); 
+        //typingDialogFunc(             ,                      ,              ,             ,             ,gender ,      ,    , text,currentDialog  , nextDialog );
         //typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, gender, dialog, dt, text, currentDialog, nextDialog);
-        
+
         if (typingDialog) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "Are You Really .... Have to? . . . \nI Want You To Be Here.", typingDialog, typingDialog1);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "You're leaving . . . .  again.      \nMy heart can't bear it.", typingDialog, typingDialog1);
         }
         if (typingDialog1) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "My Dear . ..I Have No Choice.      \nI Must Go", typingDialog1, typingDialog2);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I have no choice. The king calls, \nand the kingdom must be defended.", typingDialog1, typingDialog2);
         }
         if (typingDialog2) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "How Long This Battle Will Last?              ", typingDialog2, typingDialog3);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "And our son? . . . .   and me? . . . .              \nWhat if I never see you again?             ", typingDialog2, typingDialog3);
         }
-      
+        if (typingDialog3) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I leave to keep you safe.         \nIf I stay, we all may perish.           ", typingDialog3, typingDialog4);
+        }
+        if (typingDialog4) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "I.... I can't imagine life without you.          \nEvery night I'll lie awake, fearing the worst.           ", typingDialog4, typingDialog5);
+        }
+        if (typingDialog5) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I will return. Remember me in his smile,    \nin the warmth of our home.          ", typingDialog5, typingDialog6);
+        }
+        if (typingDialog6) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "But what if this is the last time . . .               \nthat I see your face?           ", typingDialog6, typingDialog7);
+        }
+        if (typingDialog7) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "Then hold me in your heart      \nI'll be with you always.          ", typingDialog7, typingDialog8);
+        }
+        if (typingDialog8) {
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "I'll pray... and cry......       \nhope against hope that you come back.         ", typingDialog8, typingDialogEND);
+        }
+
+
+
+
+
+        */
+
+
+
+        //check for player death
+        if (MainPlayer.health <= 0) {
+
+            // gameStartedT = false;
+             //zombieSpawn = false;
+            playerIsDead = true;
+            drawDeathFade = true;
+
+            //zombie.clear();
+            //deadZombie.clear();
+            //MainPlayer.health = 100;
+            //Level = 1;
+            //cameraX = 300, cameraY = 300;
+            //playerAttackKey = false;
+            //playerAttackAnimationBOOL = false;
+            //playerAttackDirection = 0;
+            //playerAttackTime = 0;
+
+        }
+
+
+
+
+
 
 
 
@@ -803,68 +911,69 @@ int main() {
             //store the zombie movement will be same with different framerate
             float zombieMovementX = 0, zombieMovementY = 0;
             //camera movement
-            if (!playerAttackAnimationBOOL) {
-                if (Keyboard::isKeyPressed(Keyboard::W)) {
-                    cameraY -= speed * dt; isPlayerMoving = true; playerAnimate = 2; playerAttackDirection = 2; zombieMovementY += speed * dt;
-                    if (cameraY < 70) { cameraY += speed * dt; zombieMovementY -= speed * dt; }
-                }
-                if (Keyboard::isKeyPressed(Keyboard::S)) {
-                    cameraY += speed * dt; isPlayerMoving = true; playerAnimate = 0; playerAttackDirection = 0;  zombieMovementY -= speed * dt;
-                    if (cameraY > 925) { cameraY -= speed * dt; zombieMovementY += speed * dt; }
-                }
-                if (Keyboard::isKeyPressed(Keyboard::A)) {
-                    cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; playerAttackDirection = 3;  zombieMovementX += speed * dt;
-                    // if (cameraX < 45) { cameraX += speed * dt; zombieMovementX -= speed * dt; }
-                }
-                if (Keyboard::isKeyPressed(Keyboard::D)) {
-                    cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; playerAttackDirection = 1;  zombieMovementX -= speed * dt;
-                    if (cameraX > 860) { cameraX -= speed * dt; zombieMovementX += speed * dt; }
-                }
+            if (!playerIsDead) {
+                if (!playerAttackAnimationBOOL) {
+                    if (Keyboard::isKeyPressed(Keyboard::W)) {
+                        cameraY -= speed * dt; isPlayerMoving = true; playerAnimate = 2; playerAttackDirection = 2; zombieMovementY += speed * dt;
+                        if (cameraY < 70) { cameraY += speed * dt; zombieMovementY -= speed * dt; }
+                    }
+                    if (Keyboard::isKeyPressed(Keyboard::S)) {
+                        cameraY += speed * dt; isPlayerMoving = true; playerAnimate = 0; playerAttackDirection = 0;  zombieMovementY -= speed * dt;
+                        if (cameraY > 925) { cameraY -= speed * dt; zombieMovementY += speed * dt; }
+                    }
+                    if (Keyboard::isKeyPressed(Keyboard::A)) {
+                        cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; playerAttackDirection = 3;  zombieMovementX += speed * dt;
+                        if (cameraX < 45) { cameraX += speed * dt; zombieMovementX -= speed * dt; }
+                    }
+                    if (Keyboard::isKeyPressed(Keyboard::D)) {
+                        cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; playerAttackDirection = 1;  zombieMovementX -= speed * dt;
+                        if (cameraX > 860) { cameraX -= speed * dt; zombieMovementX += speed * dt; }
+                    }
 
-                if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::D)) {
-                    cameraY += speed * dt * 0.292893;
-                    cameraX -= speed * dt * 0.292893;
-                    zombieMovementY -= speed * dt * 0.292893;
-                    zombieMovementX += speed * dt * 0.292893;
-                    // prevent camera from going too far left
-                }
-                if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::A)) {
-                    cameraY += speed * dt * 0.292893;
-                    cameraX += speed * dt * 0.292893;
-                    zombieMovementY -= speed * dt * 0.292893;
-                    zombieMovementX -= speed * dt * 0.292893;
-                }
-                if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::D)) {
-                    cameraY -= speed * dt * 0.292893;
-                    cameraX -= speed * dt * 0.292893;
-                    zombieMovementY += speed * dt * 0.292893;
-                    zombieMovementX += speed * dt * 0.292893;
-                }
-                if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::A)) {
-                    cameraY -= speed * dt * 0.292893;
-                    cameraX += speed * dt * 0.292893;
-                    zombieMovementY += speed * dt * 0.292893;
-                    zombieMovementX -= speed * dt * 0.292893;
-                }
+                    if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::D)) {
+                        cameraY += speed * dt * 0.292893;
+                        cameraX -= speed * dt * 0.292893;
+                        zombieMovementY -= speed * dt * 0.292893;
+                        zombieMovementX += speed * dt * 0.292893;
+                        // prevent camera from going too far left
+                    }
+                    if (Keyboard::isKeyPressed(Keyboard::W) && Keyboard::isKeyPressed(Keyboard::A)) {
+                        cameraY += speed * dt * 0.292893;
+                        cameraX += speed * dt * 0.292893;
+                        zombieMovementY -= speed * dt * 0.292893;
+                        zombieMovementX -= speed * dt * 0.292893;
+                    }
+                    if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::D)) {
+                        cameraY -= speed * dt * 0.292893;
+                        cameraX -= speed * dt * 0.292893;
+                        zombieMovementY += speed * dt * 0.292893;
+                        zombieMovementX += speed * dt * 0.292893;
+                    }
+                    if (Keyboard::isKeyPressed(Keyboard::S) && Keyboard::isKeyPressed(Keyboard::A)) {
+                        cameraY -= speed * dt * 0.292893;
+                        cameraX += speed * dt * 0.292893;
+                        zombieMovementY += speed * dt * 0.292893;
+                        zombieMovementX -= speed * dt * 0.292893;
+                    }
 
-                if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false;
+                    if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false;
 
-                if (Keyboard::isKeyPressed(Keyboard::Space) && playerAttackTime >= 0.4) {
-                    playerAttackKey = true;
-                    playerAttackAnimationBOOL = true;
-                    playerAttackTime = 0;
+                    if (Keyboard::isKeyPressed(Keyboard::Space) && playerAttackTime >= 0.4) {
+                        playerAttackKey = true;
+                        playerAttackAnimationBOOL = true;
+                        playerAttackTime = 0;
+                    }
                 }
             }
-
             if (playerAttackAnimationBOOL) { if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false; }
 
 
-            cerr << "x " << cameraX + 160 << " --- " << "y " << cameraY + 130 << endl;
+            // cerr << "x " << cameraX + 160 << " --- " << "y " << cameraY + 130 << endl;
 
-            //loop for spawning zombies by a value
-
+             //loop for spawning zombies by a value
+            
             if (zombieSpawn) {
-                int N;
+                cerr << "runs" << endl;
                 switch (Level) {
                 case 1:
                     N = 2;
@@ -894,8 +1003,9 @@ int main() {
                     N = 18;
                     break;
                 case 10:
-                    N = 20;
+                    N = 2;
                     break;
+                
 
                 }
                 for (int i = 0; i < N; i++) {
@@ -905,6 +1015,16 @@ int main() {
             }
 
             checkForNewLevel(zombie, Level, zombieSpawn);
+
+            if (Level == 11) {
+                
+                zombieSpawn = false;
+				realZombieSpawn = false;
+                N = 1;
+                zombie.clear();
+				endGameCutscene = true;
+
+            }
 
             if (MainPlayer.damageTakenCooldown > 0) MainPlayer.damageTakenCooldown -= dt;
 
@@ -926,8 +1046,21 @@ int main() {
                 if (playerAttackAnimationBOOL) playerAttackAnimation(dt, playerSwordAnimation, playerAttackDirection, playerAttackAnimationBOOL, renderTexture);
             }
             playerAnimation(player, dt, isPlayerMoving, playerAnimate);
-            renderTexture.draw(player);
 
+
+
+            if (!playerIsDead)renderTexture.draw(player);
+            else
+            {
+                
+                playerDeathAnimateTime += dt;
+                if (playerDeathAnimateTime > 0.3f && playerDeathAnimateFrame < 5) {
+                    playerDeathAnimateFrame += 1;
+                    playerDeathAnimateTime = 0;
+                }
+                playerDeath.setTextureRect(IntRect(playerDeathAnimateFrame * 48, 0, 48, 64));
+                renderTexture.draw(playerDeath);
+            }
 
 
 
@@ -986,46 +1119,47 @@ int main() {
             }
 
 
-
-
+            
 
 
 
             //draw zombies
             //loop through the zombies and update their positions. continues as many as there are zombies in the vector
-            for (auto& z : zombie) {
+            if (realZombieSpawn) {
+                for (auto& z : zombie) {
 
-                z.updateLocationByPlayer(zombieMovementX, zombieMovementY, dt, playerAnimate);
-                z.updateZombieMove(width, height, dt);
+                    z.updateLocationByPlayer(zombieMovementX, zombieMovementY, dt, playerAnimate);
+                    z.updateZombieMove(width, height, dt);
 
-                z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage);
-                z.zombieKnockbackUpdate(dt);
+                    z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage);
+                    z.zombieKnockbackUpdate(dt);
 
-                if (z.health <= 0) deadZombie.push_back(ZombieDeath(z.XY, Vector2f(cameraX, cameraY)));
+                    if (z.health <= 0) deadZombie.push_back(ZombieDeath(z.XY, Vector2f(cameraX, cameraY)));
 
 
-                //z.location();
+                    //z.location();
 
-             // Check distance between all zombies and push them apart if too close
-                float minDistance = 25.0f; // minimum distance be zombies
-                for (auto& z1 : zombie) {
-                    for (auto& z2 : zombie) {
-                        if (&z1 == &z2) continue; // skip same zombie
+                 // Check distance between all zombies and push them apart if too close
+                    float minDistance = 25.0f; // minimum distance be zombies
+                    for (auto& z1 : zombie) {
+                        for (auto& z2 : zombie) {
+                            if (&z1 == &z2) continue; // skip same zombie
 
-                        float distance = distanceBetweenZombies(z1.XY, z2.XY);
-                        if (distance < minDistance) {
-                            Vector2f diff = z1.XY - z2.XY;
-                            if (distance != 0) diff /= distance; // normalize
+                            float distance = distanceBetweenZombies(z1.XY, z2.XY);
+                            if (distance < minDistance) {
+                                Vector2f diff = z1.XY - z2.XY;
+                                if (distance != 0) diff /= distance; // normalize
 
-                            z1.XY += diff * (minDistance - distance) * 0.5f;
-                            z2.XY -= diff * (minDistance - distance) * 0.5f;
+                                z1.XY += diff * (minDistance - distance) * 0.5f;
+                                z2.XY -= diff * (minDistance - distance) * 0.5f;
+                            }
                         }
                     }
+                    //RenderTexture& renderTexture, float dt, Sprite blood)
+                    renderTexture.draw(z.zombieSprite);
+
+
                 }
-                //RenderTexture& renderTexture, float dt, Sprite blood)
-                renderTexture.draw(z.zombieSprite);
-
-
             }
             ////playerSwordAnimation(playerSwordAnimation,playerAnimate);
             if (playerAttackDirection != 2) {
@@ -1038,13 +1172,31 @@ int main() {
                     i--; // go back one step because the list is now smaller
                 }
             }
+            if (MainPlayer.health >60) healthText.setFillColor(Color::Green);
+            else if (MainPlayer.health <= 60 && MainPlayer.health > 40) {
+                healthText.setFillColor(Color::Yellow);
+            }
+            else if (MainPlayer.health <= 40 && MainPlayer.health > 0) {
+                healthText.setFillColor(Color::Red);
+            }
+            else if (MainPlayer.health < 1) {
+                healthText.setFillColor(Color::Black);
+            }
 
+            if (MainPlayer.health <= 0) MainPlayer.health = 0;
 
             //update health , level and zombie number text
             //to_string convert number to string
             healthText.setString("Health: " + to_string(MainPlayer.health));
-            levelNumber.setString("LVL: " + to_string(Level));
+            if(Level < 11) {
+                 levelNumber.setString("LVL: " + to_string(Level));
             zombieNumber.setString("Zombies: " + to_string(zombie.size()));
+			}
+            else {
+                levelNumber.setString("     You Won");
+                zombieNumber.setString("");
+            }
+           
             //draw background for states
             renderTexture.draw(healthBG);
 
@@ -1059,30 +1211,78 @@ int main() {
                 }
             }
 
+            if (!playerIsDead) {
+                if (playerAllowToKnockback) {
+                    if (MainPlayer.knockback.x != 0 || MainPlayer.knockback.y != 0) {
+                        cameraX += MainPlayer.knockback.x * dt;
+                        cameraY += MainPlayer.knockback.y * dt;
 
-            if (playerAllowToKnockback) {
-                if (MainPlayer.knockback.x != 0 || MainPlayer.knockback.y != 0) {
-                    cameraX += MainPlayer.knockback.x * dt;
-                    cameraY += MainPlayer.knockback.y * dt;
+                        for (auto& z : zombie) {
+                            z.XY -= MainPlayer.knockback * dt;
+                        }
 
-                    for (auto& z : zombie) {
-                        z.XY -= MainPlayer.knockback * dt;
+                        // reduce knockback over time
+                        MainPlayer.knockback *= 0.9f; // 90% every frame
+
+                        // stop if very small
+                        if (abs(MainPlayer.knockback.x) < 1 && abs(MainPlayer.knockback.y) < 1)
+                            MainPlayer.knockback = Vector2f(0, 0);
                     }
-
-                    // reduce knockback over time
-                    MainPlayer.knockback *= 0.9f; // 90% every frame
-
-                    // stop if very small
-                    if (abs(MainPlayer.knockback.x) < 1 && abs(MainPlayer.knockback.y) < 1)
-                        MainPlayer.knockback = Vector2f(0, 0);
                 }
             }
-
         }// if gameStartedT
 
 
 
+        if (deathBlackAlpha >= 255) deathBlackAlpha = 255;
 
+        if (drawDeathFade) {
+            fadeRect.setFillColor(Color(0, 0, 0, deathBlackAlpha));
+            deathBlackAlpha += 1;
+            renderTexture.draw(fadeRect);
+           
+        }
+
+
+
+
+
+
+
+
+
+        if (endGameCutscene) {
+			//renderTexture.clear(Color::Black); 
+            endGameCutsceneTime += dt;
+            if (endGameCutsceneTime >= 3.0f && endGameCutsceneTime < 10.0f) {
+            
+				showBlackFading = true;
+            }
+            else if(endGameCutsceneTime >= 10.0f && endGameCutsceneTime < 10.5f) {
+				renderTexture.clear(Color::Black);
+				showBlackFading = false;
+				gameStartedT = false;
+
+            }
+            else if (endGameCutsceneTime >= 10.5f) {
+				renderTexture.draw(outSideHouse);
+            }
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
         //display the scaled window
         renderTexture.display();
@@ -1090,6 +1290,23 @@ int main() {
         screen.setScale(2.0f, 2.0f);
         window.clear();
         window.draw(screen);
+
+
+
+        if (typingDialogEND) {
+            window.clear(Color::Black);
+            typingDialogENDTime += dt;
+
+            if (typingDialogENDTime >= 2.0f) window.draw(afterDialogText);
+            if (typingDialogENDTime >= 5.0f)  window.draw(afterDialogText2);
+            if (typingDialogENDTime >= 10.0f) window.draw(afterDialogText3);
+
+            if (typingDialogENDTime >= 17.0f) {
+                typingDialogEND = false;
+                typingDialogContinues = false;
+                gameStartedT = true;
+            }
+        }
 
 
         if (gameStartedT) {
@@ -1101,7 +1318,7 @@ int main() {
 
         //if (typingDialog) window.draw(dialog);
 
-        if(typingDialogContinues)window.draw(dialog);
+        if (typingDialogContinues)window.draw(dialog);
 
         if (showSpaceButton) window.draw(SpaceButton);
         if (gameTheme)
@@ -1109,6 +1326,57 @@ int main() {
             window.draw(Enter);
             window.draw(GameName);
         }
+
+
+
+
+        if (showBlackFading) {
+			static float alpha2 = 0;
+			if (alpha2 >= 255) alpha2 = 255;
+            fadeRect.setFillColor(Color(0, 0, 0, alpha2));
+            alpha2 += 1;
+            window.draw(fadeRect);
+
+        }
+
+
+
+
+        if (drawDeathFade) {
+			static float tempTime = 0;
+            tempTime += dt;
+
+            if (tempTime >= 6.0f) window.draw(youDied);
+            
+            if(tempTime >= 8.0f) {
+                window.draw(tryAgain);
+
+
+                if (Keyboard::isKeyPressed(Keyboard::E)) {
+                    //reset everything
+                    zombie.clear();
+                    deadZombie.clear();
+                    MainPlayer.health = 100;
+                    Level = 0;
+                    cameraX = 300, cameraY = 300;
+                    playerAttackKey = false;
+                    playerAttackAnimationBOOL = false;
+                    playerAttackDirection = 0;
+                    playerAttackTime = 0;
+                    drawDeathFade = false;
+                    tempTime = 0;
+					playerIsDead = false;
+					deathBlackAlpha = 0;
+                    playerDeathAnimateTime = 0;
+                    playerDeathAnimateFrame = 0;
+                    MainPlayer.knockback.x = 0;
+                    MainPlayer.knockback.y = 0;
+					playerAnimate = 0;
+                }
+
+			}
+        }
+
 
 
         window.display();
