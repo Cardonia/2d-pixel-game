@@ -474,7 +474,7 @@ void typingDialogFunc(bool& showSpaceButton,bool& typingDialogContinues, RenderT
     showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, gender);
     if (typingI >= message.size()) {
         timeTypingI += dt;
-        if (timeTypingI >= 1.0f) { // wait for 2 seconds before resetting
+        if (timeTypingI >= 0.0f) { // wait for 1 second before resetting
 
             showSpaceButton = true;
             if (Keyboard::isKeyPressed(Keyboard::Space)) {
@@ -516,7 +516,6 @@ int main() {
         !swordTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/swordTex.png") ||
         !start.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/theme0.png") ||
         !buttonTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/buttonTex.png") ||
-        !outSideHouseTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/frontHouseTex.png") ||
         !houseTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/houseTex.png") ||
         !talkBarTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/talkingBar.png") ||
         !bloodTex.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/bloodTex.png") ||
@@ -567,8 +566,15 @@ int main() {
 
 
     //creating health text on screen
-    Text healthText, zombieNumber, levelNumber, Enter, GameName, dialog, SpaceButton, afterDialogText, afterDialogText2, afterDialogText3,youDied,tryAgain;
+    Text healthText, zombieNumber, levelNumber, Enter, GameName, dialog, SpaceButton, afterDialogText, afterDialogText2, afterDialogText3,youDied,tryAgain,endText;
     
+
+	endText.setFont(font);
+	endText.setCharacterSize(30);
+	endText.setFillColor(Color::White);
+	
+	endText.setString("     Thanks For Playing!\n\n\n\n\n\n\n\n\n\n\n\n\n\n     Made By Cardonia\n\nFor Learning Purpose Only\n\n     Press E Key To Exit");
+
 	youDied.setFont(font);
 	youDied.setCharacterSize(40);
 	youDied.setFillColor(Color::White);
@@ -652,7 +658,7 @@ int main() {
     //float alpha = 0;
     Vector2f worldPos = Vector2f(0.0f, 0.0f);
     //bool gameStarted = false;
-    int Level = 10;
+    int Level = 1;
     int zombieDamage = 10;
     int playerAnimate = 0;
     //for delta time
@@ -682,7 +688,7 @@ int main() {
 	bool endGameCutscene = false;
 	float endGameCutsceneTime = 0;
     bool gameTheme = true;
-    bool gameStartedT = true;
+    bool gameStartedT = false;
     bool showBlackFading = false;
 
     bool gameStarted = false;
@@ -692,7 +698,7 @@ int main() {
     bool showSpaceButton = false;
     bool showBGCutscene = false;
     bool playerIsDead = false;
-
+	bool showEndText = false;
     bool
         typingDialog = false,
         typingDialog1 = false,
@@ -739,7 +745,7 @@ int main() {
         float dt = clock.restart().asSeconds();
         renderTexture.clear(Color::Black);
         // ---- MENU STATE ---- 
-        /*
+        
         if (gameTheme)
         {
             renderTexture.clear();
@@ -855,7 +861,7 @@ int main() {
 
 
 
-        */
+        
 
 
 
@@ -973,7 +979,7 @@ int main() {
              //loop for spawning zombies by a value
             
             if (zombieSpawn) {
-                cerr << "runs" << endl;
+              
                 switch (Level) {
                 case 1:
                     N = 2;
@@ -1249,7 +1255,7 @@ int main() {
 
 
 
-
+        
 
         if (endGameCutscene) {
 			//renderTexture.clear(Color::Black); 
@@ -1262,12 +1268,11 @@ int main() {
 				renderTexture.clear(Color::Black);
 				showBlackFading = false;
 				gameStartedT = false;
+				showEndText = true;
+				endGameCutscene = false;
 
             }
-            else if (endGameCutsceneTime >= 10.5f) {
-				renderTexture.draw(outSideHouse);
-            }
-
+            
 
         }
 
@@ -1339,9 +1344,20 @@ int main() {
 
         }
 
+        if (showEndText) {
+            static int x = 500;
+            window.clear(Color::Black);
+            endText.setPosition(Vector2f(165, x));
+            window.draw(endText);
+            x -= 1;
+            if (x <= -350) x = -350;
+            if (Keyboard::isKeyPressed(Keyboard::E)) {
+                window.close();
+            }
 
 
 
+        }
         if (drawDeathFade) {
 			static float tempTime = 0;
             tempTime += dt;
