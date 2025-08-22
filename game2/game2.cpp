@@ -5,6 +5,9 @@
 #include <ctime>
 #include <cstdlib>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+
+
 using namespace sf;
 using namespace std;
 
@@ -93,7 +96,7 @@ public:
     
     bool isAttacking = false;
     int health = 100;
-    int damage = 200;;
+    int damage = 25;;
     //cooldown time if zombie took a damage
     float damageTakenCooldown = 0.0f;
     Vector2f knockback = Vector2f(0, 0);
@@ -288,12 +291,13 @@ public:
         }
     }
     
-    void zombieDamage(int width, int height,Vector2f playerLocation,Vector2f zombieLocation,int damage) {
+    void zombieDamage(int width, int height,Vector2f playerLocation,Vector2f zombieLocation,int damage,Sound& playerDamageTakenSound) {
         
         Vector2f direction = Vector2f(width / 2 - 8, height / 2 - 16) - XY;
         float length = sqrt(direction.x * direction.x + direction.y * direction.y);
         if (length < 20 && MainPlayer.damageTakenCooldown <= 0) {
             MainPlayer.health -= damage;
+            playerDamageTakenSound.play();
             MainPlayer.damageTakenCooldown = 0.5f;
 
             Vector2f knockDir = playerLocation - zombieLocation;
@@ -460,11 +464,13 @@ void showCutsceneBG(RenderTexture& renderTexture, Sprite& noFadeHouse, Sprite& n
 }
 
 
-void typingDialogFunc(bool& showSpaceButton,bool& typingDialogContinues, RenderTexture& renderTexture, Sprite& noFadeHouse, Sprite& noFadeTalkBar, unsigned char gender, Text& dialog, float dt, string text, bool& currentDialog, bool& nextDialog) {
+void typingDialogFunc(bool& showSpaceButton,bool& typingDialogContinues, RenderTexture& renderTexture, Sprite& noFadeHouse, Sprite& noFadeTalkBar, unsigned char gender, Text& dialog, float dt, string text, bool& currentDialog, bool& nextDialog,Sound typingSound,Clock typingSoundTime) {
 
 
     static int typingI = 0;
     static float timeTypingI = 0;
+    
+
     typingDialogContinues = true;
     string message = text;
     string shown = "";
@@ -472,9 +478,16 @@ void typingDialogFunc(bool& showSpaceButton,bool& typingDialogContinues, RenderT
     typingI++;
     dialog.setString(shown);
     showCutsceneBG(renderTexture, noFadeHouse, noFadeTalkBar, gender);
+    if (typingI < message.size()) {
+        if (typingSoundTime.getElapsedTime().asMilliseconds() > 710)
+        {
+            typingSound.play();
+            typingSoundTime.restart();
+        }
+    }
     if (typingI >= message.size()) {
         timeTypingI += dt;
-        if (timeTypingI >= 0.0f) { // wait for 1 second before resetting
+        if (timeTypingI >= 0.2f) { // wait for 1 second before resetting
 
             showSpaceButton = true;
             if (Keyboard::isKeyPressed(Keyboard::Space)) {
@@ -486,8 +499,38 @@ void typingDialogFunc(bool& showSpaceButton,bool& typingDialogContinues, RenderT
             }
         }
     }
-    sleep(milliseconds(100));
+    sleep(milliseconds(70));
 }
+
+
+
+
+void calculateIncreaseHealthValue(int& increaseHealthValue, int& PlayerHealth,bool& increaseHealth,Sound& healSound) {
+    healSound.play();
+    float result = PlayerHealth + 20;
+    if (result <= 100) {
+        increaseHealthValue = 20;
+        PlayerHealth += 20;
+    }
+    else {
+        result -= 100;
+        increaseHealthValue = (20 - result);
+        PlayerHealth += (20 - result);
+    }
+    increaseHealth = true;
+}
+
+
+
+
+void playWalkingSound(Clock& walkTime,Sound& walkingOnGrassSound) {
+    if (walkTime.getElapsedTime().asMilliseconds() > 300)
+    {
+        walkingOnGrassSound.play();
+        walkTime.restart(); 
+    }
+}
+
 
 
 
@@ -500,7 +543,7 @@ int main() {
 
 
     //window size and frame rate limit
-    RenderWindow window(VideoMode(width * 2, height * 2), "Second Game");
+    RenderWindow window(VideoMode(width * 2, height * 2), "A Poor Knight");
     window.setFramerateLimit(60);
     //window.setVerticalSyncEnabled(true);
     int tileSize = 16;
@@ -529,6 +572,47 @@ int main() {
         // Error loading font
         cerr << "Error loading font\n";
     }
+
+
+
+    SoundBuffer damageTakenSoundLoad,walkingOnGrassSoundLoad,swordSwingSoundLoad,themeMusicLoad,typingSoundLoad,playerDamageTakenSoundLoad,healSoundLoad,killSoundLoad,playerDeathSoundLoad,deathMusicLoad,creditThemeLoad;
+
+    if (!damageTakenSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/damageTaken.wav")||
+        !swordSwingSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/swordSwing.wav") ||
+        !themeMusicLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/themeMusic.wav") ||
+        !playerDamageTakenSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/playerDamage.wav") ||
+        !healSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/healSound.wav") ||
+        !typingSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/typingSound.wav") ||
+        !killSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/KillSound.wav") ||
+        !deathMusicLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/deathMusic.wav") ||
+        !creditThemeLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/creditTheme.wav") ||
+        !playerDeathSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/PlayerDeath.wav") ||
+        !walkingOnGrassSoundLoad.loadFromFile("C:/Users/Best Tech/source/repos/game2/x64/Debug/assets/walkingOnGrass.wav"))
+    {
+        std::cout << "Error loading sound\n";
+        return -1;
+    }
+
+    Sound damageTakenSound, walkingOnGrassSound, swordSwingSound,themeMusic,typingSound, playerDamageTakenSound, healSound,playerDeathSound,killSound,deathMusic,creditTheme;
+    damageTakenSound.setBuffer(damageTakenSoundLoad);
+    walkingOnGrassSound.setBuffer(walkingOnGrassSoundLoad);
+    walkingOnGrassSound.setVolume(70);
+    swordSwingSound.setBuffer(swordSwingSoundLoad);
+    themeMusic.setBuffer(themeMusicLoad);
+    typingSound.setBuffer(typingSoundLoad);
+    typingSound.setVolume(50);
+    playerDamageTakenSound.setBuffer(playerDamageTakenSoundLoad);
+    healSound.setBuffer(healSoundLoad);
+    healSound.setVolume(250);
+    playerDeathSound.setBuffer(playerDeathSoundLoad);
+    killSound.setBuffer(killSoundLoad);
+    deathMusic.setBuffer(deathMusicLoad);
+    creditTheme.setBuffer(creditThemeLoad);
+    
+
+
+
+
 
     Sprite tileSprite, player, playerSwordAnimation, start1, bleeding, button, talkBar, house, noFadeHouse, noFadeTalkBar, playerDeath, outSideHouse;
 	outSideHouse.setTexture(outSideHouseTex);
@@ -566,8 +650,18 @@ int main() {
 
 
     //creating health text on screen
-    Text healthText, zombieNumber, levelNumber, Enter, GameName, dialog, SpaceButton, afterDialogText, afterDialogText2, afterDialogText3,youDied,tryAgain,endText;
+    Text healthText, zombieNumber, levelNumber, Enter, GameName, dialog, SpaceButton, afterDialogText, afterDialogText2, afterDialogText3,youDied,tryAgain,endText, ESCTOSkip,increaseHealthText;
     
+    increaseHealthText.setFont(font);
+    increaseHealthText.setCharacterSize(35);
+
+    ESCTOSkip.setFont(font);
+    ESCTOSkip.setCharacterSize(20);
+    ESCTOSkip.setPosition(Vector2f(5,0));
+    ESCTOSkip.setFillColor(Color::White);
+    ESCTOSkip.setStyle(Text::Bold);
+    ESCTOSkip.setString("ESC to Skip");
+
 
 	endText.setFont(font);
 	endText.setCharacterSize(30);
@@ -650,16 +744,16 @@ int main() {
     GameName.setCharacterSize(30);
     GameName.setFillColor(Color::Black);
     GameName.setPosition(Vector2f(350, 150));
-    GameName.setString("No Name Yet!");
+    GameName.setString("A Poor Knight");
     GameName.setStyle(Text::Bold);
 
 
-
+    int increaseHealthValue = 0;
     //float alpha = 0;
     Vector2f worldPos = Vector2f(0.0f, 0.0f);
     //bool gameStarted = false;
     int Level = 1;
-    int zombieDamage = 10;
+    int zombieDamage = 6;
     int playerAnimate = 0;
     //for delta time
     Clock clock;
@@ -672,13 +766,18 @@ int main() {
     static int playerAttackDirection = 0;
     float playerAttackTime = 0;
     int N;
+    int increaseHealthX = 0;
+    float increaseHealthY = 0;
+    float increaseHealthTime = 0;
 
 
 
 
-
-
-
+    RectangleShape ESCBackground(sf::Vector2f(120, 25)); 
+    ESCBackground.setPosition(2, 2); // x=100, y=50
+    ESCBackground.setFillColor(Color(0,0,200,200)); // fill color
+    ESCBackground.setOutlineColor(Color(255,165,0,255)); // border color
+    ESCBackground.setOutlineThickness(2);
 
 
 
@@ -712,14 +811,16 @@ int main() {
         typingDialogEND = false;
 
     float typingDialogENDTime = 0;
-
+    bool increaseHealth = false;
     bool typingDialogContinues = false;
-
+    bool enableToSkip = false;
+    bool drawSkipText = false;
+    bool clearTextLeftOver = false;
     int alpha = 0;
-
+    bool allowPlayDeathSound = true;
     Color houseColor = Color::White;
     Color talkBarColor = Color::White;
-
+    bool playCreditTheme = true;
     bool drawDeathFade = false;
     RectangleShape fadeRect(Vector2f(window.getSize()));
     fadeRect.setFillColor(Color(0, 0, 0, 0));
@@ -728,7 +829,9 @@ int main() {
      float playerDeathAnimateTime = 0;
      int playerDeathAnimateFrame = 0;
      bool realZombieSpawn = true;
+     Clock walkTime,themeTime,typingSoundTime;
 
+     themeMusic.play();
     // Game loop
     while (window.isOpen()) {
 
@@ -748,6 +851,12 @@ int main() {
         
         if (gameTheme)
         {
+            if (themeTime.getElapsedTime().asMilliseconds() > 16000)
+            {
+                themeMusic.play();
+                themeTime.restart();
+            }
+        
             renderTexture.clear();
             renderTexture.draw(start1);
             buttonAnimation(renderTexture, button);
@@ -758,12 +867,16 @@ int main() {
 
             if (Keyboard::isKeyPressed(Keyboard::Enter))
             {
-
+                themeMusic.stop();
                 fadingHouse = true;
                 gameTheme = false;
+                enableToSkip = true;
                 // alpha = 0;
             }
         }
+
+
+        
 
         if (fadingHouse) {
             if (alpha <= 255) {
@@ -789,6 +902,7 @@ int main() {
 
         if (fadingTalkBar)
         {
+            drawSkipText = true;
             if (alpha <= 255)
             {
                 alpha += 2;
@@ -824,41 +938,63 @@ int main() {
             }
         }
 
-        //Handling all game dialog with typingDialogFunc function. just need to pass the parameters like gender , message , current if statement , next if statement
+        //Handling all game dialog with typingDialogFunc function. just need to pass the parameters like gender , message , current if statement , next if statement 
 
-        //typingDialogFunc(             ,                      ,              ,             ,             ,gender ,      ,    , text,currentDialog  , nextDialog );
-        //typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, gender, dialog, dt, text, currentDialog, nextDialog);
+        //typingDialogFunc(             ,                      ,              ,             ,             ,gender ,      ,    , text,currentDialog  , nextDialog , playTypingSound,typingSound);
+        //typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, gender, dialog, dt, text, currentDialog, nextDialog, playTypingSound,typingSound,typingSoundTime);
 
         if (typingDialog) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "You're leaving . . . .  again.      \nMy heart can't bear it.", typingDialog, typingDialog1);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "You're leaving . . . .  again.      \nMy heart can't bear it.", typingDialog, typingDialog1,typingSound, typingSoundTime);
         }
         if (typingDialog1) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I have no choice. The king calls, \nand the kingdom must be defended.", typingDialog1, typingDialog2);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I have no choice. The king calls, \nand the kingdom must be defended.", typingDialog1, typingDialog2, typingSound, typingSoundTime);
         }
         if (typingDialog2) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "And our son? . . . .   and me? . . . .              \nWhat if I never see you again?             ", typingDialog2, typingDialog3);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "And our son? . . . .   and me? . . . .              \nWhat if I never see you again?", typingDialog2, typingDialog3,  typingSound, typingSoundTime);
         }
         if (typingDialog3) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I leave to keep you safe.         \nIf I stay, we all may perish.           ", typingDialog3, typingDialog4);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I leave to keep you safe.         \nIf I stay, we all may perish.", typingDialog3, typingDialog4,  typingSound, typingSoundTime);
         }
         if (typingDialog4) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "I.... I can't imagine life without you.          \nEvery night I'll lie awake, fearing the worst.           ", typingDialog4, typingDialog5);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "I.... I can't imagine life without you.          \nEvery night I'll lie awake, fearing the worst.", typingDialog4, typingDialog5, typingSound, typingSoundTime);
         }
         if (typingDialog5) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I will return. Remember me in his smile,    \nin the warmth of our home.          ", typingDialog5, typingDialog6);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "I will return. Remember me in his smile,    \nin the warmth of our home.", typingDialog5, typingDialog6, typingSound, typingSoundTime);
         }
         if (typingDialog6) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "But what if this is the last time . . .               \nthat I see your face?           ", typingDialog6, typingDialog7);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "But what if this is the last time . . .               \nthat I see your face?", typingDialog6, typingDialog7, typingSound, typingSoundTime);
         }
         if (typingDialog7) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "Then hold me in your heart      \nI'll be with you always.          ", typingDialog7, typingDialog8);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 1, dialog, dt, "Then hold me in your heart      \nI'll be with you always.", typingDialog7, typingDialog8,  typingSound, typingSoundTime);
         }
         if (typingDialog8) {
-            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "I'll pray... and cry......       \nhope against hope that you come back.         ", typingDialog8, typingDialogEND);
+            typingDialogFunc(showSpaceButton, typingDialogContinues, renderTexture, noFadeHouse, noFadeTalkBar, 0, dialog, dt, "I'll pray... and cry......       \nhope against hope that you come back.", typingDialog8, typingDialogEND,  typingSound, typingSoundTime);
+            drawSkipText = false;
         }
 
 
+        if (enableToSkip) {
+            if (Keyboard::isKeyPressed(Keyboard::Escape)) {
+                clearTextLeftOver = true;
+                drawSkipText = false;
+                fadingHouse = false;
+                fadingTalkBar = false;
+                typingDialog = false;
+                typingDialog1 = false;
+                typingDialog2 = false;
+                typingDialog3 = false;
+                typingDialog4 = false;
+                typingDialog5 = false;
+                typingDialog6 = false;
+                typingDialog7 = false;
+                typingDialog8 = false;
+                gameStartedT = true;
+                typingDialogContinues = false;
+                showSpaceButton = false;
+                typingDialogEND = false;
 
+            }
+        }
 
 
         
@@ -909,7 +1045,7 @@ int main() {
 
 
 
-
+            
             //show animation if the player is moving also the player will animate in the direction they are moving
             bool isPlayerMoving = false;
 
@@ -920,18 +1056,22 @@ int main() {
             if (!playerIsDead) {
                 if (!playerAttackAnimationBOOL) {
                     if (Keyboard::isKeyPressed(Keyboard::W)) {
+                        playWalkingSound(walkTime, walkingOnGrassSound);
                         cameraY -= speed * dt; isPlayerMoving = true; playerAnimate = 2; playerAttackDirection = 2; zombieMovementY += speed * dt;
                         if (cameraY < 70) { cameraY += speed * dt; zombieMovementY -= speed * dt; }
                     }
                     if (Keyboard::isKeyPressed(Keyboard::S)) {
+                        playWalkingSound(walkTime, walkingOnGrassSound);
                         cameraY += speed * dt; isPlayerMoving = true; playerAnimate = 0; playerAttackDirection = 0;  zombieMovementY -= speed * dt;
                         if (cameraY > 925) { cameraY -= speed * dt; zombieMovementY += speed * dt; }
                     }
                     if (Keyboard::isKeyPressed(Keyboard::A)) {
+                        playWalkingSound(walkTime, walkingOnGrassSound);
                         cameraX -= speed * dt; isPlayerMoving = true; playerAnimate = 3; playerAttackDirection = 3;  zombieMovementX += speed * dt;
                         if (cameraX < 45) { cameraX += speed * dt; zombieMovementX -= speed * dt; }
                     }
                     if (Keyboard::isKeyPressed(Keyboard::D)) {
+                        playWalkingSound(walkTime, walkingOnGrassSound);
                         cameraX += speed * dt; isPlayerMoving = true; playerAnimate = 1; playerAttackDirection = 1;  zombieMovementX -= speed * dt;
                         if (cameraX > 860) { cameraX -= speed * dt; zombieMovementX += speed * dt; }
                     }
@@ -965,6 +1105,7 @@ int main() {
                     if (cameraX < 55 || cameraX > 860 || cameraY < 70 || cameraY > 925)  playerAllowToKnockback = false;
 
                     if (Keyboard::isKeyPressed(Keyboard::Space) && playerAttackTime >= 0.4) {
+                        swordSwingSound.play();
                         playerAttackKey = true;
                         playerAttackAnimationBOOL = true;
                         playerAttackTime = 0;
@@ -978,6 +1119,7 @@ int main() {
 
              //loop for spawning zombies by a value
             
+            
             if (zombieSpawn) {
               
                 switch (Level) {
@@ -989,27 +1131,32 @@ int main() {
                     break;
                 case 3:
                     N = 6;
+                    calculateIncreaseHealthValue(increaseHealthValue, MainPlayer.health, increaseHealth ,healSound);
                     break;
                 case 4:
                     N = 8;
                     break;
                 case 5:
                     N = 10;
+                    calculateIncreaseHealthValue(increaseHealthValue, MainPlayer.health, increaseHealth, healSound);
                     break;
                 case 6:
                     N = 12;
                     break;
                 case 7:
                     N = 14;
+                    calculateIncreaseHealthValue(increaseHealthValue, MainPlayer.health, increaseHealth, healSound);
                     break;
                 case 8:
                     N = 16;
                     break;
                 case 9:
                     N = 18;
+                    calculateIncreaseHealthValue(increaseHealthValue, MainPlayer.health, increaseHealth, healSound);
                     break;
                 case 10:
-                    N = 2;
+                    N = 20;
+                    calculateIncreaseHealthValue(increaseHealthValue, MainPlayer.health, increaseHealth, healSound);
                     break;
                 
 
@@ -1078,39 +1225,38 @@ int main() {
                     case 0:
 
 
-
-                        if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y && z.XY.y < getPlayerPosition.y + 40) {
+                        if (z.XY.x > getPlayerPosition.x - 25 && z.XY.x < getPlayerPosition.x + 25 && z.XY.y > getPlayerPosition.y && z.XY.y < getPlayerPosition.y + 40) {
                             z.health -= MainPlayer.damage;
-
+                            damageTakenSound.play();
                             z.bleeding = true;
 
                             z.proccessZombieKnockback(z.XY, getPlayerPosition);
                         }
                         break;
                     case 1:
-                        if (z.XY.x > getPlayerPosition.x && z.XY.x < getPlayerPosition.x + 40 && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
+                        if (z.XY.x > getPlayerPosition.x && z.XY.x < getPlayerPosition.x + 40 && z.XY.y > getPlayerPosition.y - 25 && z.XY.y < getPlayerPosition.y + 25) {
                             z.health -= MainPlayer.damage;
                             z.bleeding = true;
-
+                            damageTakenSound.play();
                             z.proccessZombieKnockback(z.XY, getPlayerPosition);
 
                         }
                         break;
                     case 2:
-                        if (z.XY.x > getPlayerPosition.x - 20 && z.XY.x < getPlayerPosition.x + 20 && z.XY.y > getPlayerPosition.y - 40 && z.XY.y < getPlayerPosition.y) {
+                        if (z.XY.x > getPlayerPosition.x - 25 && z.XY.x < getPlayerPosition.x + 25 && z.XY.y > getPlayerPosition.y - 40 && z.XY.y < getPlayerPosition.y) {
                             z.health -= MainPlayer.damage;
                             z.bleeding = true;
                             z.proccessZombieKnockback(z.XY, getPlayerPosition);
-
+                            damageTakenSound.play();
 
                         }
                         break;
                     case 3:
-                        if (z.XY.x > getPlayerPosition.x - 40 && z.XY.x < getPlayerPosition.x && z.XY.y > getPlayerPosition.y - 20 && z.XY.y < getPlayerPosition.y + 20) {
+                        if (z.XY.x > getPlayerPosition.x - 40 && z.XY.x < getPlayerPosition.x && z.XY.y > getPlayerPosition.y - 25 && z.XY.y < getPlayerPosition.y + 25) {
                             z.health -= MainPlayer.damage;
                             z.bleeding = true;
                             z.proccessZombieKnockback(z.XY, getPlayerPosition);
-
+                            damageTakenSound.play();
 
                         }
                         break;
@@ -1137,10 +1283,14 @@ int main() {
                     z.updateLocationByPlayer(zombieMovementX, zombieMovementY, dt, playerAnimate);
                     z.updateZombieMove(width, height, dt);
 
-                    z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage);
+                    z.zombieDamage(width, height, player.getPosition(), z.zombieSprite.getPosition(), zombieDamage, playerDamageTakenSound);
                     z.zombieKnockbackUpdate(dt);
 
-                    if (z.health <= 0) deadZombie.push_back(ZombieDeath(z.XY, Vector2f(cameraX, cameraY)));
+                    if (z.health <= 0) { 
+                        deadZombie.push_back(ZombieDeath(z.XY, Vector2f(cameraX, cameraY))); 
+                        killSound.play();
+                    }
+
 
 
                     //z.location();
@@ -1189,7 +1339,11 @@ int main() {
                 healthText.setFillColor(Color::Black);
             }
 
-            if (MainPlayer.health <= 0) MainPlayer.health = 0;
+            if (MainPlayer.health <= 0) {
+                MainPlayer.health = 0;
+                if(allowPlayDeathSound)playerDeathSound.play();
+                allowPlayDeathSound = false;
+            }
 
             //update health , level and zombie number text
             //to_string convert number to string
@@ -1251,7 +1405,7 @@ int main() {
 
 
 
-
+       
 
 
 
@@ -1314,6 +1468,11 @@ int main() {
         }
 
 
+        if (drawSkipText) {
+            window.draw(ESCBackground);
+            window.draw(ESCTOSkip);
+        }
+
         if (gameStartedT) {
             //draw states in higher resolution
             window.draw(healthText);
@@ -1344,14 +1503,46 @@ int main() {
 
         }
 
+
+        
+        if(increaseHealth){
+            
+            increaseHealthText.setPosition(Vector2f(20, 55 - increaseHealthY));
+            increaseHealthText.setFillColor(Color(0, 255 , 0, increaseHealthX));
+            increaseHealthText.setString("+" + to_string(increaseHealthValue));
+            increaseHealthX += 2;
+            increaseHealthY += 0.25;
+            increaseHealthTime += dt;
+            if (increaseHealthX >= 255) increaseHealthX = 255;
+            if (increaseHealthTime >= 2.0f) {
+                increaseHealth = false;
+                increaseHealthX = 0;
+                increaseHealthY = 0;
+                increaseHealthTime = 0;
+            }
+            window.draw(increaseHealthText);
+        }
+
+
+
+
+
+
+
+
         if (showEndText) {
             static int x = 500;
+            if (playCreditTheme) {
+                creditTheme.play();
+                playCreditTheme = false;
+            }
             window.clear(Color::Black);
             endText.setPosition(Vector2f(165, x));
             window.draw(endText);
             x -= 1;
             if (x <= -350) x = -350;
             if (Keyboard::isKeyPressed(Keyboard::E)) {
+              
                 window.close();
             }
 
@@ -1361,7 +1552,8 @@ int main() {
         if (drawDeathFade) {
 			static float tempTime = 0;
             tempTime += dt;
-
+            playerDamageTakenSound.stop();
+            if (tempTime >= 5.0f&& tempTime < 5.1f) deathMusic.play();
             if (tempTime >= 6.0f) window.draw(youDied);
             
             if(tempTime >= 8.0f) {
@@ -1369,6 +1561,8 @@ int main() {
 
 
                 if (Keyboard::isKeyPressed(Keyboard::E)) {
+                    deathMusic.stop();
+                    allowPlayDeathSound = true;
                     //reset everything
                     zombie.clear();
                     deadZombie.clear();
