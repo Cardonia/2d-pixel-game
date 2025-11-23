@@ -2,6 +2,10 @@
 
 A small **2D top-down pixel game** made with **C++ and SFML**.  
 
+## Game Video
+[![Game Video](showcase/video-img.jpg)](https://youtu.be/ou0TuQiz7oY)
+
+
 ## Game Features
 
 - Move your character in a 2D world  
